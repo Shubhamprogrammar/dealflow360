@@ -833,6 +833,542 @@
       ]
     },
     {
+      "name": "Discount Tiers",
+      "description": "Discount limits and approval chain configuration",
+      "item": [
+        {
+          "name": "List discount tiers, paginated",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/discount-tiers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "discount-tiers"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "tierName",
+                  "value": "bronze",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List discount tiers, paginated"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const first = (pm.response.json().data || [])[0];",
+                  "if (first && first._id) pm.collectionVariables.set('discountTierId', first._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create a discount tier (admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/discount-tiers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "discount-tiers"
+              ]
+            },
+            "description": "Create a discount tier (admin)\n\ntierName is stored lowercase so quotation risk scoring can look the tier up by the customer tier.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tierName\": \"bronze\",\n  \"maxDiscountPercent\": 5,\n  \"categorySpecificLimits\": [\n    {\n      \"category\": \"hardware\",\n      \"maxDiscount\": 10\n    }\n  ],\n  \"approvalChain\": [\n    {\n      \"minDiscount\": 10,\n      \"maxDiscount\": 20,\n      \"requiredApprovers\": [\n        \"admin\"\n      ]\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const id = body.data && (body.data._id || body.data.id);",
+                  "if (id) pm.collectionVariables.set('discountTierId', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Partially update a discount tier (admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/discount-tiers/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "discount-tiers",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{discountTierId}}"
+                }
+              ]
+            },
+            "description": "Partially update a discount tier (admin)\n\nSend only changed fields; at least one is required.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tierName\": \"bronze\",\n  \"maxDiscountPercent\": 5,\n  \"categorySpecificLimits\": [\n    {\n      \"category\": \"hardware\",\n      \"maxDiscount\": 10\n    }\n  ],\n  \"approvalChain\": [\n    {\n      \"minDiscount\": 10,\n      \"maxDiscount\": 20,\n      \"requiredApprovers\": [\n        \"admin\"\n      ]\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete a discount tier (admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/discount-tiers/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "discount-tiers",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{discountTierId}}"
+                }
+              ]
+            },
+            "description": "Delete a discount tier (admin)\n\nHard delete. Tiers are resolved by name at scoring time rather than referenced by id, so no records are left dangling."
+          },
+          "response": []
+        },
+        {
+          "name": "Replace the category-specific discount limits (admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/discount-tiers/:id/category-limits",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "discount-tiers",
+                ":id",
+                "category-limits"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{discountTierId}}"
+                }
+              ]
+            },
+            "description": "Replace the category-specific discount limits (admin)\n\nA category limit may deliberately exceed the tier maxDiscountPercent, so the two are not cross-checked.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categorySpecificLimits\": [\n    {\n      \"category\": \"hardware\",\n      \"maxDiscount\": 10\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Replace the approval chain rules (admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/discount-tiers/:id/approval-chain",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "discount-tiers",
+                ":id",
+                "approval-chain"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{discountTierId}}"
+                }
+              ]
+            },
+            "description": "Replace the approval chain rules (admin)\n\nRanges are inclusive and must not overlap, so the rule matched for a risk score does not depend on array order.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"approvalChain\": [\n    {\n      \"minDiscount\": 10,\n      \"maxDiscount\": 20,\n      \"requiredApprovers\": [\n        \"admin\"\n      ]\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Warehouses",
+      "description": "Warehouse setup and stock levels",
+      "item": [
+        {
+          "name": "List warehouses, paginated",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/warehouses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "warehouses"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Case-insensitive name match",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List warehouses, paginated"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const list = pm.response.json().data || [];",
+                  "if (list[0] && list[0]._id) pm.collectionVariables.set('warehouseId', list[0]._id);",
+                  "if (list[0] && list[0]._id) pm.collectionVariables.set('fromWarehouseId', list[0]._id);",
+                  "if (list[1] && list[1]._id) pm.collectionVariables.set('toWarehouseId', list[1]._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create a warehouse (admin, sales_manager)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/warehouses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "warehouses"
+              ]
+            },
+            "description": "Create a warehouse (admin, sales_manager)\n\nStock is managed through the stock endpoints, not at creation time.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Main Warehouse\",\n  \"location\": \"Pune\",\n  \"shippingCostWeight\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const id = body.data && (body.data._id || body.data.id);",
+                  "if (id) pm.collectionVariables.set('warehouseId', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Transfer stock between warehouses (admin, sales_manager)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/warehouses/transfer",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "warehouses",
+                "transfer"
+              ]
+            },
+            "description": "Transfer stock between warehouses (admin, sales_manager)\n\nThe source is debited by a single conditional update that cannot oversell, and a failed credit returns the stock, so no transaction is required.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromWarehouse\": \"{{fromWarehouseId}}\",\n  \"toWarehouse\": \"{{toWarehouseId}}\",\n  \"product\": \"{{productId}}\",\n  \"quantity\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Partially update a warehouse (admin, sales_manager)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/warehouses/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "warehouses",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{warehouseId}}"
+                }
+              ]
+            },
+            "description": "Partially update a warehouse (admin, sales_manager)\n\nSend only changed fields; at least one is required.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Main Warehouse\",\n  \"location\": \"Pune\",\n  \"shippingCostWeight\": 1,\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add or replace a stock level (admin, sales_manager)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/warehouses/:id/stock",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "warehouses",
+                ":id",
+                "stock"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{warehouseId}}"
+                }
+              ]
+            },
+            "description": "Add or replace a stock level (admin, sales_manager)\n\nUpsert on the product: quantity is absolute, not additive. Returns 201 when the product had no stock line yet, 200 when an existing line was replaced.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product\": \"{{productId}}\",\n  \"quantity\": 10,\n  \"reorderPoint\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get the stock level for one product",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/warehouses/:id/stock/:productId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "warehouses",
+                ":id",
+                "stock",
+                ":productId"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{warehouseId}}"
+                },
+                {
+                  "key": "productId",
+                  "value": "{{productId}}"
+                }
+              ]
+            },
+            "description": "Get the stock level for one product"
+          },
+          "response": []
+        },
+        {
+          "name": "Adjust a stock level (admin, sales_manager)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/warehouses/:id/stock/:productId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "warehouses",
+                ":id",
+                "stock",
+                ":productId"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{warehouseId}}"
+                },
+                {
+                  "key": "productId",
+                  "value": "{{productId}}"
+                }
+              ]
+            },
+            "description": "Adjust a stock level (admin, sales_manager)\n\nSupply exactly one of quantity (absolute) or adjustment (signed delta). reorderPoint may accompany either.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"adjustment\": -3,\n  \"reorderPoint\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Health",
       "description": "Liveness and readiness",
       "item": [
@@ -924,6 +1460,26 @@
     },
     {
       "key": "priceListId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "discountTierId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "warehouseId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "fromWarehouseId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "toWarehouseId",
       "value": "",
       "type": "string"
     },

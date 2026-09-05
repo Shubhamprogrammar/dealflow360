@@ -21,16 +21,24 @@ const outFile = resolve(here, '../docs/dealflow360.postman_collection.json');
 
 const METHODS = ['get', 'post', 'put', 'patch', 'delete'] as const;
 
-/** Path params are bound to collection variables so ids set by one request feed the next. */
-const PATH_VARIABLE: Record<string, string> = {
-  '/users/{id}': 'userId',
-  '/products/{id}': 'productId',
-  '/products/{id}/variants': 'productId',
-  '/products/{id}/variants/{variantId}': 'productId',
-  '/pricelists/tier/{tierName}': 'tierName',
-  '/auth/customer/verify/{token}': 'magicLinkToken',
+/**
+ * Path params are bound to collection variables so ids set by one request feed the next.
+ * Keyed by path then param name, since a path can carry two ids that map to different variables.
+ */
+const PATH_VARIABLE: Record<string, Record<string, string>> = {
+  '/users/{id}': { id: 'userId' },
+  '/products/{id}': { id: 'productId' },
+  '/products/{id}/variants': { id: 'productId' },
+  '/products/{id}/variants/{variantId}': { id: 'productId', variantId: 'variantId' },
+  '/pricelists/tier/{tierName}': { tierName: 'tierName' },
+  '/auth/customer/verify/{token}': { token: 'magicLinkToken' },
+  '/discount-tiers/{id}': { id: 'discountTierId' },
+  '/discount-tiers/{id}/category-limits': { id: 'discountTierId' },
+  '/discount-tiers/{id}/approval-chain': { id: 'discountTierId' },
+  '/warehouses/{id}': { id: 'warehouseId' },
+  '/warehouses/{id}/stock': { id: 'warehouseId' },
+  '/warehouses/{id}/stock/{productId}': { id: 'warehouseId', productId: 'productId' },
 };
-const VARIANT_VARIABLE = 'variantId';
 
 /** Fixed so regenerating the collection produces no spurious diff. */
 const DATE_EXAMPLE: Record<string, string> = {
@@ -89,6 +97,26 @@ const TESTS: Record<string, string[]> = {
     'const id = body.data && (body.data._id || body.data.id);',
     "if (id) pm.collectionVariables.set('priceListId', id);",
   ],
+  'POST /discount-tiers': [
+    'const body = pm.response.json();',
+    'const id = body.data && (body.data._id || body.data.id);',
+    "if (id) pm.collectionVariables.set('discountTierId', id);",
+  ],
+  'GET /discount-tiers': [
+    'const first = (pm.response.json().data || [])[0];',
+    "if (first && first._id) pm.collectionVariables.set('discountTierId', first._id);",
+  ],
+  'POST /warehouses': [
+    'const body = pm.response.json();',
+    'const id = body.data && (body.data._id || body.data.id);',
+    "if (id) pm.collectionVariables.set('warehouseId', id);",
+  ],
+  'GET /warehouses': [
+    'const list = pm.response.json().data || [];',
+    "if (list[0] && list[0]._id) pm.collectionVariables.set('warehouseId', list[0]._id);",
+    "if (list[0] && list[0]._id) pm.collectionVariables.set('fromWarehouseId', list[0]._id);",
+    "if (list[1] && list[1]._id) pm.collectionVariables.set('toWarehouseId', list[1]._id);",
+  ],
   'GET /pricelists': [
     'const first = (pm.response.json().data || [])[0];',
     "if (first && first._id) pm.collectionVariables.set('priceListId', first._id);",
@@ -146,14 +174,15 @@ const sample = (rawSchema: unknown, depth = 0, property = ''): unknown => {
       if (schema.format === 'email') return 'user@example.com';
       // A validFrom equal to validTo is rejected with 422, so the two need distinct values.
       if (schema.format === 'date-time') return DATE_EXAMPLE[property] ?? DATE_EXAMPLE.validFrom;
+      if (str(schema.description)?.includes('24-hex warehouse id'))
+        return property === 'toWarehouse' ? '{{toWarehouseId}}' : '{{fromWarehouseId}}';
       return str(schema.description)?.includes('24-hex') ? '{{productId}}' : 'string';
     default:
       return schema.properties ? sample({ ...schema, type: 'object' }, depth, property) : null;
   }
 };
 
-const pathVarName = (path: string, param: string): string =>
-  param === 'variantId' ? VARIANT_VARIABLE : (PATH_VARIABLE[path] ?? param);
+const pathVarName = (path: string, param: string): string => PATH_VARIABLE[path]?.[param] ?? param;
 
 const buildRequest = (path: string, method: string, operation: Json): Json => {
   const params = arr(operation.parameters).map(deref);
@@ -269,6 +298,10 @@ const collection = {
     { key: 'productId', value: '', type: 'string' },
     { key: 'variantId', value: '', type: 'string' },
     { key: 'priceListId', value: '', type: 'string' },
+    { key: 'discountTierId', value: '', type: 'string' },
+    { key: 'warehouseId', value: '', type: 'string' },
+    { key: 'fromWarehouseId', value: '', type: 'string' },
+    { key: 'toWarehouseId', value: '', type: 'string' },
     { key: 'tierName', value: 'gold', type: 'string' },
   ],
 };
