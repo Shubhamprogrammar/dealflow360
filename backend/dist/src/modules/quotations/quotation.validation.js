@@ -62,6 +62,7 @@ export const lineItemIdSchema = z.object({
     query: z.object({}),
     headers,
 });
+<<<<<<< HEAD
 export const respondNegotiationSchema = z.object({
     body: z.object({
         lineItems: z
@@ -76,3 +77,5 @@ export const respondNegotiationSchema = z.object({
     query: z.object({}),
     headers,
 });
+=======
+>>>>>>> 0d40206 (merge)

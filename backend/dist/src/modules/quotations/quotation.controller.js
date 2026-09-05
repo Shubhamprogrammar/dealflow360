@@ -1,16 +1,27 @@
 import { sendSuccess } from '../../utils/api-response.js';
 import { quotationService } from './quotation.service.js';
+<<<<<<< HEAD
 import { approvalService } from '../approvals/approval.service.js';
+=======
+>>>>>>> 0d40206 (merge)
 export const createQuotation = async (req, res) => {
     const quotation = await quotationService.create(req.body, req.user);
     sendSuccess(res, 201, 'Quotation created successfully', quotation);
 };
 export const listQuotations = async (req, res) => {
+<<<<<<< HEAD
     const { items, pagination } = await quotationService.list(req.query, req.user);
     sendSuccess(res, 200, 'Quotations fetched successfully', items, pagination);
 };
 export const getQuotation = async (req, res) => {
     const quotation = await quotationService.getById(req.params.id, req.user);
+=======
+    const { items, pagination } = await quotationService.list(req.query);
+    sendSuccess(res, 200, 'Quotations fetched successfully', items, pagination);
+};
+export const getQuotation = async (req, res) => {
+    const quotation = await quotationService.getById(req.params.id);
+>>>>>>> 0d40206 (merge)
     sendSuccess(res, 200, 'Quotation fetched successfully', quotation);
 };
 export const updateQuotation = async (req, res) => {
@@ -33,6 +44,7 @@ export const removeLineItem = async (req, res) => {
     const quotation = await quotationService.removeLineItem(req.params.id, req.params.itemId, req.user);
     sendSuccess(res, 200, 'Line item removed successfully', quotation);
 };
+<<<<<<< HEAD
 export const calculateRisk = async (req, res) => {
     const quotation = await quotationService.calculateRisk(req.params.id, req.user);
     sendSuccess(res, 200, 'Risk score calculated successfully', quotation);
@@ -52,3 +64,5 @@ export const respondNegotiation = async (req, res) => {
     const quotation = await approvalService.respondToNegotiation(req.params.id, req.user, req.body);
     sendSuccess(res, 200, 'Negotiation response recorded', quotation);
 };
+=======
+>>>>>>> 0d40206 (merge)

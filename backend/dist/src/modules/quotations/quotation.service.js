@@ -2,8 +2,11 @@ import { Types } from 'mongoose';
 import { ApiError } from '../../utils/api-error.js';
 import { CustomerModel } from '../customers/customer.model.js';
 import { ProductModel } from '../products/product.model.js';
+<<<<<<< HEAD
 import { DiscountTierModel } from '../discount-tiers/discount-tier.model.js';
 import { UpsellRuleModel } from '../upsell-rules/upsell-rule.model.js';
+=======
+>>>>>>> 0d40206 (merge)
 import { QuotationModel } from './quotation.model.js';
 const DUPLICATE_KEY_ERROR_CODE = 11000;
 const isDuplicateKeyError = (error) => typeof error === 'object' &&
@@ -41,27 +44,41 @@ const view = (quotation) => ({
     createdAt: quotation.createdAt,
     updatedAt: quotation.updatedAt,
 });
+<<<<<<< HEAD
 // roleaccess.md: Rep permissions are "create & edit quotations" (their own —
 // pipeline access is scoped to "own deals only"); Manager's own permissions
 // list is approve/reject/comment/escalate, not editing a rep's draft. So
 // mutation stays owner-only regardless of role — the route-level `authorize`
 // in quotation.routes.ts already restricts who can reach these at all.
+=======
+const PRIVILEGED_ROLES = ['admin', 'sales_manager'];
+>>>>>>> 0d40206 (merge)
 const findOwned = async (id, requester) => {
     const quotation = await QuotationModel.findById(id).exec();
     if (!quotation)
         throw new ApiError(404, 'Quotation not found', 'QUOTATION_NOT_FOUND');
+<<<<<<< HEAD
     if (quotation.createdBy.toString() !== requester.id)
         throw new ApiError(403, 'You do not own this quotation', 'FORBIDDEN');
+=======
+    const isOwner = quotation.createdBy.toString() === requester.id;
+    if (!isOwner && !PRIVILEGED_ROLES.includes(requester.role))
+        throw new ApiError(403, 'You do not have access to this quotation', 'FORBIDDEN');
+>>>>>>> 0d40206 (merge)
     return quotation;
 };
 const assertDraft = (quotation) => {
     if (quotation.status !== 'draft')
         throw new ApiError(409, 'Only draft quotations can be modified', 'QUOTATION_NOT_DRAFT');
 };
+<<<<<<< HEAD
 // Exported for approval.service.ts's respondToNegotiation, which applies its
 // own line-item edits (rep countering a customer's negotiation) and needs
 // the same totals recompute without duplicating the math.
 export const recalculateTotals = async (quotation) => {
+=======
+const recalculateTotals = async (quotation) => {
+>>>>>>> 0d40206 (merge)
     const productIds = [...new Set(quotation.lineItems.map((item) => item.product.toString()))];
     const products = await ProductModel.find({ _id: { $in: productIds } })
         .select('taxRate')
@@ -86,6 +103,7 @@ const findLineItemIndex = (quotation, itemId) => {
         throw new ApiError(404, 'Line item not found', 'LINE_ITEM_NOT_FOUND');
     return index;
 };
+<<<<<<< HEAD
 // Shared with approval.service.ts (submit-approval needs the same tier ->
 // approvalChain lookup this uses for categorySpecificLimits) so both stay in
 // sync on the "no discount tier configured" error instead of duplicating it.
@@ -133,6 +151,8 @@ export const calculateBlendedRisk = async (quotation) => {
     const level = score > 20 ? 'high' : score > 10 ? 'medium' : 'low';
     return { score, level, violations };
 };
+=======
+>>>>>>> 0d40206 (merge)
 export const quotationService = {
     create: async (input, requester) => {
         const customer = await CustomerModel.findById(input.customer).exec();
@@ -155,19 +175,26 @@ export const quotationService = {
         }
         throw new ApiError(500, 'Failed to generate a unique quote number', 'QUOTE_NUMBER_CONFLICT');
     },
+<<<<<<< HEAD
     // roleaccess.md scoping: Sales Rep sees only their own deals; Finance/Ops
     // is restricted to approved quotations; Manager (team-level) and Admin see
     // everything matching the requested filters.
     list: async (query, requester) => {
+=======
+    list: async (query) => {
+>>>>>>> 0d40206 (merge)
         const filter = {};
         if (query.status)
             filter.status = query.status;
         if (query.customer)
             filter.customer = query.customer;
+<<<<<<< HEAD
         if (requester.role === 'sales_rep')
             filter.createdBy = requester.id;
         if (requester.role === 'finance')
             filter.status = 'approved';
+=======
+>>>>>>> 0d40206 (merge)
         const [items, total] = await Promise.all([
             QuotationModel.find(filter)
                 .sort({ createdAt: -1 })
@@ -186,6 +213,7 @@ export const quotationService = {
             },
         };
     },
+<<<<<<< HEAD
     getById: async (id, requester) => {
         const quotation = await QuotationModel.findById(id).exec();
         if (!quotation)
@@ -194,6 +222,12 @@ export const quotationService = {
             throw new ApiError(403, 'You do not have access to this quotation', 'FORBIDDEN');
         if (requester.role === 'finance' && quotation.status !== 'approved')
             throw new ApiError(403, 'Finance can only view approved quotations', 'FORBIDDEN');
+=======
+    getById: async (id) => {
+        const quotation = await QuotationModel.findById(id).exec();
+        if (!quotation)
+            throw new ApiError(404, 'Quotation not found', 'QUOTATION_NOT_FOUND');
+>>>>>>> 0d40206 (merge)
         return view(quotation);
     },
     update: async (id, input, requester) => {
@@ -267,6 +301,7 @@ export const quotationService = {
         await quotation.save();
         return view(quotation);
     },
+<<<<<<< HEAD
     calculateRisk: async (id, requester) => {
         const quotation = await findOwned(id, requester);
         assertDraft(quotation);
@@ -330,4 +365,6 @@ export const quotationService = {
             return b.coOccurrenceScore - a.coOccurrenceScore;
         });
     },
+=======
+>>>>>>> 0d40206 (merge)
 };
