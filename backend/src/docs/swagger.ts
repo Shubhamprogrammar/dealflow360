@@ -1,8 +1,10 @@
 import { authPaths } from './paths/auth.paths.js';
+import { discountTierPaths } from './paths/discount-tier.paths.js';
 import { healthPaths } from './paths/health.paths.js';
 import { pricelistPaths } from './paths/pricelist.paths.js';
 import { productPaths } from './paths/product.paths.js';
 import { userPaths } from './paths/user.paths.js';
+import { warehousePaths } from './paths/warehouse.paths.js';
 
 export const swaggerSpec = {
   openapi: '3.0.3',
@@ -18,6 +20,8 @@ export const swaggerSpec = {
     { name: 'Users', description: 'Internal user management' },
     { name: 'Products', description: 'Catalogue and variants' },
     { name: 'Price Lists', description: 'Tier-specific pricing' },
+    { name: 'Discount Tiers', description: 'Discount limits and approval chain configuration' },
+    { name: 'Warehouses', description: 'Warehouse setup and stock levels' },
     { name: 'Health', description: 'Liveness and readiness' },
   ],
   components: {
@@ -140,6 +144,99 @@ export const swaggerSpec = {
           validTo: { type: 'string', format: 'date-time' },
         },
       },
+      CategoryLimit: {
+        type: 'object',
+        required: ['category', 'maxDiscount'],
+        properties: {
+          category: { type: 'string', enum: ['hardware', 'services', 'subscriptions'] },
+          maxDiscount: {
+            type: 'number',
+            minimum: 0,
+            maximum: 100,
+            example: 10,
+            description: 'Percent, 0-100. May exceed the tier maxDiscountPercent.',
+          },
+        },
+      },
+      ApprovalChainRule: {
+        type: 'object',
+        required: ['minDiscount', 'maxDiscount', 'requiredApprovers'],
+        properties: {
+          minDiscount: { type: 'number', minimum: 0, maximum: 100, example: 10 },
+          maxDiscount: { type: 'number', minimum: 0, maximum: 100, example: 20 },
+          requiredApprovers: {
+            type: 'array',
+            minItems: 1,
+            items: { type: 'string', enum: ['admin', 'sales_rep', 'sales_manager', 'finance'] },
+          },
+        },
+      },
+      DiscountTier: {
+        type: 'object',
+        required: ['tierName', 'maxDiscountPercent'],
+        properties: {
+          tierName: {
+            type: 'string',
+            enum: ['bronze', 'silver', 'gold'],
+            example: 'bronze',
+            description: 'Case-insensitive on input; stored lowercase to match the customer tier.',
+          },
+          maxDiscountPercent: {
+            type: 'number',
+            minimum: 0,
+            maximum: 100,
+            example: 5,
+            description: 'Percent, 0-100.',
+          },
+          categorySpecificLimits: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/CategoryLimit' },
+          },
+          approvalChain: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/ApprovalChainRule' },
+          },
+        },
+      },
+      StockLevel: {
+        type: 'object',
+        required: ['product', 'quantity'],
+        properties: {
+          product: { type: 'string', description: '24-hex product id' },
+          quantity: { type: 'integer', minimum: 0, example: 10 },
+          reorderPoint: { type: 'integer', minimum: 0, example: 2 },
+        },
+      },
+      WarehouseInput: {
+        type: 'object',
+        required: ['name'],
+        properties: {
+          name: { type: 'string', example: 'Main Warehouse' },
+          location: { type: 'string', example: 'Pune' },
+          shippingCostWeight: {
+            type: 'number',
+            minimum: 0,
+            example: 1,
+            description: 'Relative shipping cost used when splitting fulfilment.',
+          },
+        },
+      },
+      Warehouse: {
+        type: 'object',
+        required: ['name'],
+        properties: {
+          name: { type: 'string', example: 'Main Warehouse' },
+          location: { type: 'string', example: 'Pune' },
+          shippingCostWeight: {
+            type: 'number',
+            minimum: 0,
+            example: 1,
+            description: 'Relative shipping cost used when splitting fulfilment.',
+          },
+          isActive: { type: 'boolean' },
+          stockLevels: { type: 'array', items: { $ref: '#/components/schemas/StockLevel' } },
+        },
+      },
     },
   },
   paths: {
@@ -147,6 +244,8 @@ export const swaggerSpec = {
     ...userPaths,
     ...productPaths,
     ...pricelistPaths,
+    ...discountTierPaths,
+    ...warehousePaths,
     ...healthPaths,
   },
 } as const;

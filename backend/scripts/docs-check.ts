@@ -61,7 +61,8 @@ for (const [router, prefix] of prefixes) {
 }
 
 const documented = new Set<string>();
-for (const [path, item] of Object.entries(swaggerSpec.paths)) {
+for (const [path, item] of Object.entries<unknown>(swaggerSpec.paths)) {
+  if (item === null || typeof item !== 'object') continue;
   for (const method of Object.keys(item)) documented.add(`${method.toUpperCase()} ${path}`);
 }
 

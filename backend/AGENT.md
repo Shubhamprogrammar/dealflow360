@@ -62,10 +62,13 @@ Client -> Route -> Middleware -> Validation -> Controller -> Service -> Mongoose
 - Success responses use `{ success: true, message, data }`.
 - Paginated responses add a `pagination` object containing `page`, `limit`, `total`, and `totalPages`.
 - Error responses use `{ success: false, message, error: { code } }`.
-- Every route must carry an `@openapi` JSDoc block in its `*.routes.ts` file, added in the same change as the route itself. A route that does not appear at `/docs` is not finished.
+- Every route must be documented in `src/docs/paths/`, added in the same change as the route itself. A route that does not appear at `/docs` is not finished.
   - Document the request body, path/query parameters, and every status code the handler can return, including 403 and 422.
-  - Reuse the shared schemas in `src/docs/swagger.ts` (`Error`, `Pagination`, `User`, `Product`, `PriceList`, ...) via `$ref` rather than redefining shapes inline; add a new shared schema when a shape is used by more than one route.
-  - `swagger-jsdoc` scans `src/modules/**/*.routes.ts` and `src/routes/*.ts`, resolved relative to `src/docs/swagger.ts` so the globs work under both `tsx` and the compiled `dist` build.
+  - Reuse the shared schemas in `src/docs/swagger.ts` (`Error`, `Pagination`, `User`, `Product`, `PriceList`, `DiscountTier`, `Warehouse`, ...) via `$ref` rather than redefining shapes inline; add a new shared schema when a shape is used by more than one route.
+  - Path modules are plain typed objects checked with `satisfies Paths` from `src/docs/openapi.types.ts`, so a mistyped key or an unknown `$ref` fails `npm run typecheck`. `src/docs/swagger.ts` spreads them into `paths`; there is no comment scanning and no `swagger-jsdoc` dependency.
+  - Omit `security` for public endpoints. The Postman generator reads its absence as no-auth.
+  - Run `npm run docs:check` after touching routes. It compares the registered Express routes against the spec and fails on anything undocumented or orphaned.
+  - Run `npm run postman` to regenerate `docs/dealflow360.postman_collection.json` from the spec. The file is generated; edit the path modules, not the JSON.
 - Do not expose stack traces, database internals, secrets, passwords, JWTs, refresh tokens, or sensitive implementation details.
 
 ## Authentication and Authorization
