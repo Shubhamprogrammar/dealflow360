@@ -33,6 +33,13 @@ export const quotationIdSchema = z.object({
   headers,
 });
 
+export const fromInquirySchema = z.object({
+  body: z.object({}),
+  params: z.object({ inquiryId: objectId }),
+  query: z.object({}),
+  headers,
+});
+
 export const updateQuotationSchema = z.object({
   body: z.object({
     validUntil: z.string().datetime().optional(),

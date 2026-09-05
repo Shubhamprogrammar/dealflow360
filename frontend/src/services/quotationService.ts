@@ -15,6 +15,11 @@ export const quotationService = {
     const res = await api.post<any>('/quotations', { customer: customerId });
     return mapQuotation(res.data);
   },
+  // Pipeline "New Inquiry" card → pre-filled draft quotation.
+  createFromInquiry: async (inquiryId: string): Promise<Quotation> => {
+    const res = await api.post<any>(`/quotations/from-inquiry/${inquiryId}`);
+    return mapQuotation(res.data);
+  },
   addLine: async (id: string, productId: string, qty: number, discountPct: number): Promise<Quotation> => {
     const res = await api.post<any>(`/quotations/${id}/line-items`, {
       product: productId,

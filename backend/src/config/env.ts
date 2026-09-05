@@ -22,7 +22,7 @@ const envSchema = z.object({
   SMTP_PASSWORD: z.string().optional(),
   SMTP_FROM: z.string().default('DealFlow360 <no-reply@dealflow360.local>'),
   PORTAL_BASE_URL: z.string().url().default('http://localhost:3000/portal'),
-  MAGIC_LINK_TTL_MINUTES: z.coerce.number().int().positive().default(30),
+  MAGIC_LINK_TTL_MINUTES: z.coerce.number().int().positive().default(20),
   SEED_ADMIN_EMAIL: z.string().email().optional(),
   SEED_ADMIN_PASSWORD: z.string().min(8).optional(),
 });

@@ -3,62 +3,54 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from '@/lib/hooks/useSession';
-import { api, saveTokens } from '@/lib/api/apiClient';
-import { saveCustomerSession } from '@/lib/auth/tokenStore';
+import { api } from '@/lib/api/apiClient';
 import { Button } from '@/components/ui/Button';
 
 export default function LoginPage() {
-  const [tab, setTab] = useState<'staff' | 'customer' | 'signup'>('staff');
+  const [tab, setTab] = useState<'staff' | 'customer'>('staff');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [companyName, setCompanyName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [linkSent, setLinkSent] = useState(false);
   const { login } = useSession();
   const router = useRouter();
+
+  const switchTab = (next: 'staff' | 'customer') => {
+    setTab(next);
+    setError('');
+    setLinkSent(false);
+  };
 
   const handleStaffLogin = async () => {
     try {
       await login(email, password);
       router.push('/dashboard');
-    } catch (err: any) {
-      setError(err.message || 'Login failed');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed');
     }
   };
 
-  const handleCustomerLogin = async () => {
+  // Magic link is the only customer auth path. Always show the same message.
+  const handleCustomerRequestLink = async () => {
     try {
-      const res = await api.post<any>('/auth/customer/login', { email, password }, true);
-      saveTokens(res.data.accessToken);
-      saveCustomerSession(res.data);
-      router.push('/portal');
-    } catch (err: any) {
-      setError(err.message || 'Login failed');
+      await api.post('/auth/customer/request-link', { email }, true);
+    } catch {
+      // Swallow — the response is intentionally identical either way, and we
+      // never want to hint at whether the email is registered.
     }
-  };
-
-  const handleCustomerSignup = async () => {
-    try {
-      const res = await api.post<any>('/auth/customer/register', { companyName, email, password }, true);
-      saveTokens(res.data.accessToken);
-      saveCustomerSession(res.data);
-      router.push('/portal');
-    } catch (err: any) {
-      setError(err.message || 'Signup failed');
-    }
+    setLinkSent(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password || (tab === 'signup' && !companyName)) return;
-    
+    if (tab === 'staff' && (!email || !password)) return;
+    if (tab === 'customer' && !email) return;
+
     setSubmitting(true);
     setError('');
-    
     if (tab === 'staff') await handleStaffLogin();
-    else if (tab === 'customer') await handleCustomerLogin();
-    else if (tab === 'signup') await handleCustomerSignup();
-    
+    else await handleCustomerRequestLink();
     setSubmitting(false);
   };
 
@@ -69,8 +61,8 @@ export default function LoginPage() {
     try {
       await login(loginEmail, 'dealflow');
       router.push('/dashboard');
-    } catch (err: any) {
-      setError(err.message || 'Login failed');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed');
       setSubmitting(false);
     }
   };
@@ -91,7 +83,7 @@ export default function LoginPage() {
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60 sm:p-8">
           <div className="mb-6 inline-flex w-full rounded-lg bg-slate-100 p-1">
             <button
-              onClick={() => { setTab('staff'); setError(''); }}
+              onClick={() => switchTab('staff')}
               className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                 tab === 'staff' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
@@ -99,77 +91,77 @@ export default function LoginPage() {
               Staff
             </button>
             <button
-              onClick={() => { setTab('customer'); setError(''); }}
+              onClick={() => switchTab('customer')}
               className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                 tab === 'customer' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               Customer
             </button>
-            <button
-              onClick={() => { setTab('signup'); setError(''); }}
-              className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                tab === 'signup' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              Sign Up
-            </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="grid gap-4">
-            {error && (
-              <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 border border-red-200">
-                {error}
+          {tab === 'customer' && linkSent ? (
+            <div className="grid gap-3 text-center">
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
+                Check your email for a login link. It expires in a few minutes and can only be used once.
               </div>
-            )}
-            
-            {tab === 'signup' && (
+              <button
+                type="button"
+                onClick={() => setLinkSent(false)}
+                className="text-sm text-blue-600 hover:text-blue-700"
+              >
+                Use a different email
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="grid gap-4">
+              {error && (
+                <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+                  {error}
+                </div>
+              )}
+
               <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">
-                Company Name
+                Email
                 <input
-                  type="text"
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
-                  placeholder="Acme Corp"
+                  placeholder="you@company.com"
                   className={inputClass}
                 />
               </label>
-            )}
-            <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">
-              Email
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                placeholder="you@company.com"
-                className={inputClass}
-              />
-            </label>
-            <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">
-              Password
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder="••••••••"
-                className={inputClass}
-              />
-            </label>
 
-            <div className="mt-1 flex items-center justify-between gap-3">
-              <Button type="submit" variant="primary" disabled={submitting} className="flex-1">
-                {tab === 'signup' ? 'Create Account' : 'Log In'}
+              {tab === 'staff' && (
+                <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">
+                  Password
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    placeholder="••••••••"
+                    className={inputClass}
+                  />
+                </label>
+              )}
+
+              {tab === 'customer' && (
+                <p className="text-xs text-slate-500">
+                  We&apos;ll email you a secure sign-in link — no password needed.
+                </p>
+              )}
+
+              <Button type="submit" variant="primary" disabled={submitting} className="mt-1 w-full">
+                {submitting
+                  ? 'Please wait…'
+                  : tab === 'staff'
+                    ? 'Log In'
+                    : 'Send me a link'}
               </Button>
-            </div>
-            {tab !== 'signup' && (
-              <button type="button" className="text-center text-sm text-blue-600 hover:text-blue-700">
-                Forgot password?
-              </button>
-            )}
-          </form>
+            </form>
+          )}
 
           {tab === 'staff' && (
             <div className="mt-8 border-t border-slate-100 pt-6">

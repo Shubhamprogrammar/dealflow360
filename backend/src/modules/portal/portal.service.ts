@@ -1,7 +1,17 @@
 import { ApiError } from '../../utils/api-error.js';
+import { PRODUCT_CATEGORIES } from '../../types/domain.types.js';
+import { CustomerModel } from '../customers/customer.model.js';
+import { ProductModel } from '../products/product.model.js';
+import { inquiryService } from '../inquiries/inquiry.service.js';
+import type { InquiryView } from '../inquiries/inquiry.types.js';
 import { QuotationModel } from '../quotations/quotation.model.js';
 import type { CustomerComment, QuotationDocument } from '../quotations/quotation.model.js';
-import type { PortalQuotationView, RequestChangesInput } from './portal.types.js';
+import type {
+  PortalCatalogView,
+  PortalQuotationView,
+  RequestChangesInput,
+  SubmitInquiryInput,
+} from './portal.types.js';
 
 // A quotation only becomes visible to the customer once it has cleared
 // internal approval -- draft/pending_approval/rejected quotes don't exist as
@@ -61,6 +71,46 @@ const findVisible = async (
 };
 
 export const portalService = {
+  // Read-only catalog for the portal's "browse and send an inquiry" screen.
+  // Indicative pricing only -- base price (plus variant adjustment); the rep
+  // sets real pricing and discounts when the inquiry becomes a quotation.
+  getCatalog: async (customerId: string): Promise<PortalCatalogView> => {
+    const customer = await CustomerModel.findById(customerId).select('customerTier').exec();
+    if (!customer) throw new ApiError(404, 'Customer not found', 'CUSTOMER_NOT_FOUND');
+
+    const products = await ProductModel.find({ isActive: true }).sort({ name: 1 }).exec();
+
+    const groups = PRODUCT_CATEGORIES.map((category) => ({
+      category,
+      products: products
+        .filter((product) => product.category === category)
+        .map((product) => ({
+          id: product._id.toString(),
+          name: product.name,
+          category: product.category,
+          unit: product.unit ?? 'Each',
+          basePrice: product.basePrice,
+          isSubscription: product.isSubscription,
+          variants: product.variants.map((variant) => ({
+            id: variant._id.toString(),
+            attributeName: variant.attributeName,
+            attributeValue: variant.attributeValue,
+            priceAdjustment: variant.priceAdjustment,
+          })),
+        })),
+    })).filter((group) => group.products.length > 0);
+
+    return { customerTier: customer.customerTier, groups };
+  },
+
+  submitInquiry: async (
+    customerId: string,
+    input: SubmitInquiryInput,
+  ): Promise<InquiryView> => inquiryService.create(customerId, input),
+
+  listInquiries: async (customerId: string): Promise<InquiryView[]> =>
+    inquiryService.listForCustomer(customerId),
+
   listQuotations: async (customerId: string): Promise<PortalQuotationView[]> => {
     const quotations = await QuotationModel.find({
       customer: customerId,

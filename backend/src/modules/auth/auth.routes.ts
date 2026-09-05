@@ -2,37 +2,30 @@ import { Router } from 'express';
 import { asyncHandler } from '../../utils/async-handler.js';
 import { authenticate } from '../../middleware/auth.middleware.js';
 import { validate } from '../../middleware/validate.middleware.js';
+import { login, logout, me, refresh, requestMagicLink, verifyMagicLink } from './auth.controller.js';
 import {
-  customerLogin,
-  login,
-  logout,
-  me,
-  refresh,
-  requestMagicLink,
-  verifyMagicLink,
-  registerCustomer,
-} from './auth.controller.js';
-import {
-  customerLoginSchema,
-  customerRegisterSchema,
   loginSchema,
   magicLinkSchema,
-  magicLinkTokenSchema,
+  magicLinkVerifySchema,
   refreshSchema,
 } from './auth.validation.js';
 
 export const authRoutes = Router();
 
+// Staff auth (email + password) -- unrelated to customer auth below.
 authRoutes.post('/login', validate(loginSchema), asyncHandler(login));
 authRoutes.post('/refresh', validate(refreshSchema), asyncHandler(refresh));
 authRoutes.get('/me', authenticate, asyncHandler(me));
 authRoutes.post('/logout', asyncHandler(logout));
 
-authRoutes.post('/customer/magic-link', validate(magicLinkSchema), asyncHandler(requestMagicLink));
+// Customer portal auth -- magic link only. No password, no signup.
+authRoutes.post(
+  '/customer/request-link',
+  validate(magicLinkSchema),
+  asyncHandler(requestMagicLink),
+);
 authRoutes.get(
-  '/customer/verify/:token',
-  validate(magicLinkTokenSchema),
+  '/customer/verify',
+  validate(magicLinkVerifySchema),
   asyncHandler(verifyMagicLink),
 );
-authRoutes.post('/customer/login', validate(customerLoginSchema), asyncHandler(customerLogin));
-authRoutes.post('/customer/register', validate(customerRegisterSchema), asyncHandler(registerCustomer));

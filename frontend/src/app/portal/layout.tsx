@@ -5,12 +5,19 @@ import { usePathname } from 'next/navigation';
 
 const TABS = [
   { label: 'My Quotation', href: '/portal' },
+  { label: 'Catalog', href: '/portal/catalog' },
+  { label: 'My Inquiries', href: '/portal/inquiries' },
   { label: 'Messages', href: '/portal/messages' },
   { label: 'Profile', href: '/portal/profile' },
 ];
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+
+  // The magic-link landing page is pre-authentication -- no nav there.
+  if (pathname === '/portal/verify') {
+    return <div className="flex min-h-full flex-1 flex-col bg-slate-50">{children}</div>;
+  }
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-slate-50">

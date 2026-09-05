@@ -31,7 +31,6 @@ const PATH_VARIABLE: Record<string, Record<string, string>> = {
   '/products/{id}/variants': { id: 'productId' },
   '/products/{id}/variants/{variantId}': { id: 'productId', variantId: 'variantId' },
   '/pricelists/tier/{tierName}': { tierName: 'tierName' },
-  '/auth/customer/verify/{token}': { token: 'magicLinkToken' },
   '/discount-tiers/{id}': { id: 'discountTierId' },
   '/discount-tiers/{id}/category-limits': { id: 'discountTierId' },
   '/discount-tiers/{id}/approval-chain': { id: 'discountTierId' },
@@ -71,11 +70,7 @@ const TESTS: Record<string, string[]> = {
     'const id = body.data && (body.data._id || body.data.id);',
     "if (id) pm.collectionVariables.set('userId', id);",
   ],
-  'GET /auth/customer/verify/{token}': [
-    'const body = pm.response.json();',
-    "if (body.data && body.data.accessToken) pm.collectionVariables.set('customerToken', body.data.accessToken);",
-  ],
-  'POST /auth/customer/login': [
+  'GET /auth/customer/verify': [
     'const body = pm.response.json();',
     "if (body.data && body.data.accessToken) pm.collectionVariables.set('customerToken', body.data.accessToken);",
   ],

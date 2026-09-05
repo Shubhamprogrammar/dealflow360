@@ -73,12 +73,13 @@ export const authPaths = {
       responses: { 200: { description: 'Logged out' } },
     },
   },
-  '/auth/customer/magic-link': {
+  '/auth/customer/request-link': {
     post: {
       tags: ['Auth'],
-      summary: 'Email a customer a one-time portal link',
+      summary: 'Email a customer a one-time portal sign-in link',
       description:
-        'Always returns 202, including for unknown emails, so the endpoint cannot be used to enumerate customers.',
+        'The only customer auth method. Always returns 202 with the same message, including for ' +
+        'unknown emails, so the endpoint cannot be used to enumerate customers.',
       requestBody: {
         required: true,
         content: {
@@ -98,13 +99,13 @@ export const authPaths = {
       },
     },
   },
-  '/auth/customer/verify/{token}': {
+  '/auth/customer/verify': {
     get: {
       tags: ['Auth'],
       summary: 'Redeem a magic-link token for a customer session',
       description:
-        'Single use. The stored token is cleared on success, so replaying it returns 401.',
-      parameters: [{ in: 'path', name: 'token', required: true, schema: { type: 'string' } }],
+        'Single use. The token is marked used on success, so replaying it returns 401.',
+      parameters: [{ in: 'query', name: 'token', required: true, schema: { type: 'string' } }],
       responses: {
         200: {
           description: 'Customer session',
@@ -112,37 +113,7 @@ export const authPaths = {
             'application/json': { schema: { $ref: '#/components/schemas/CustomerSession' } },
           },
         },
-        401: { description: 'Unknown, expired, or already redeemed' },
-      },
-    },
-  },
-  '/auth/customer/login': {
-    post: {
-      tags: ['Auth'],
-      summary: 'Customer portal password login',
-      requestBody: {
-        required: true,
-        content: {
-          'application/json': {
-            schema: {
-              type: 'object',
-              required: ['email', 'password'],
-              properties: {
-                email: { type: 'string', format: 'email', example: 'buyer@acme.com' },
-                password: { type: 'string', minLength: 8 },
-              },
-            },
-          },
-        },
-      },
-      responses: {
-        200: {
-          description: 'Customer session',
-          content: {
-            'application/json': { schema: { $ref: '#/components/schemas/CustomerSession' } },
-          },
-        },
-        401: { description: 'Bad credentials or no portal password set' },
+        401: { description: 'Unknown, expired, or already redeemed link' },
       },
     },
   },

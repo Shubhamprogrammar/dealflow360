@@ -2,12 +2,28 @@ import { Router } from 'express';
 import { asyncHandler } from '../../utils/async-handler.js';
 import { authenticateCustomer } from '../../middleware/auth.middleware.js';
 import { validate } from '../../middleware/validate.middleware.js';
-import { confirmQuotation, getPortalQuotation, getPortalQuotations, requestChanges } from './portal.controller.js';
-import { portalQuotationIdSchema, requestChangesSchema } from './portal.validation.js';
+import {
+  confirmQuotation,
+  getPortalCatalog,
+  getPortalInquiries,
+  getPortalQuotation,
+  getPortalQuotations,
+  requestChanges,
+  submitPortalInquiry,
+} from './portal.controller.js';
+import {
+  portalQuotationIdSchema,
+  requestChangesSchema,
+  submitInquirySchema,
+} from './portal.validation.js';
 
 export const portalRoutes = Router();
 
 portalRoutes.use(authenticateCustomer);
+
+portalRoutes.get('/catalog', asyncHandler(getPortalCatalog));
+portalRoutes.post('/inquiries', validate(submitInquirySchema), asyncHandler(submitPortalInquiry));
+portalRoutes.get('/inquiries', asyncHandler(getPortalInquiries));
 
 portalRoutes.get('/quotations', asyncHandler(getPortalQuotations));
 

@@ -43,6 +43,9 @@ export type QuotationDocument = {
   quoteNumber: string;
   customer: Types.ObjectId;
   createdBy: Types.ObjectId;
+  // Set only when the quotation was started from a customer portal inquiry
+  // (see inquiries module). The inquiry keeps the reverse link.
+  sourceInquiry?: Types.ObjectId;
   lineItems: QuotationLineItem[];
   subtotal: number;
   totalDiscount: number;
@@ -104,6 +107,7 @@ const schema = new Schema<QuotationDocument>(
     quoteNumber: { type: String, required: true, unique: true, trim: true, index: true },
     customer: { type: Schema.Types.ObjectId, ref: 'Customer', required: true, index: true },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    sourceInquiry: { type: Schema.Types.ObjectId, ref: 'Inquiry', index: true },
     lineItems: { type: [lineItemSchema], default: [] },
     subtotal: { type: Number, default: 0, min: 0 },
     totalDiscount: { type: Number, default: 0, min: 0 },
