@@ -5,11 +5,11 @@ export const createQuotation = async (req, res) => {
     sendSuccess(res, 201, 'Quotation created successfully', quotation);
 };
 export const listQuotations = async (req, res) => {
-    const { items, pagination } = await quotationService.list(req.query);
+    const { items, pagination } = await quotationService.list(req.query, req.user);
     sendSuccess(res, 200, 'Quotations fetched successfully', items, pagination);
 };
 export const getQuotation = async (req, res) => {
-    const quotation = await quotationService.getById(req.params.id);
+    const quotation = await quotationService.getById(req.params.id, req.user);
     sendSuccess(res, 200, 'Quotation fetched successfully', quotation);
 };
 export const updateQuotation = async (req, res) => {
@@ -31,4 +31,8 @@ export const updateLineItem = async (req, res) => {
 export const removeLineItem = async (req, res) => {
     const quotation = await quotationService.removeLineItem(req.params.id, req.params.itemId, req.user);
     sendSuccess(res, 200, 'Line item removed successfully', quotation);
+};
+export const calculateRisk = async (req, res) => {
+    const quotation = await quotationService.calculateRisk(req.params.id, req.user);
+    sendSuccess(res, 200, 'Risk score calculated successfully', quotation);
 };

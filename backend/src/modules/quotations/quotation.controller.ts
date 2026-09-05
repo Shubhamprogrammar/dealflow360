@@ -11,12 +11,13 @@ export const createQuotation = async (req: Request, res: Response): Promise<void
 export const listQuotations = async (req: Request, res: Response): Promise<void> => {
   const { items, pagination } = await quotationService.list(
     req.query as unknown as ListQuotationsQuery,
+    req.user!,
   );
   sendSuccess(res, 200, 'Quotations fetched successfully', items, pagination);
 };
 
 export const getQuotation = async (req: Request, res: Response): Promise<void> => {
-  const quotation = await quotationService.getById(req.params.id as string);
+  const quotation = await quotationService.getById(req.params.id as string, req.user!);
   sendSuccess(res, 200, 'Quotation fetched successfully', quotation);
 };
 
@@ -56,4 +57,9 @@ export const removeLineItem = async (req: Request, res: Response): Promise<void>
     req.user!,
   );
   sendSuccess(res, 200, 'Line item removed successfully', quotation);
+};
+
+export const calculateRisk = async (req: Request, res: Response): Promise<void> => {
+  const quotation = await quotationService.calculateRisk(req.params.id as string, req.user!);
+  sendSuccess(res, 200, 'Risk score calculated successfully', quotation);
 };

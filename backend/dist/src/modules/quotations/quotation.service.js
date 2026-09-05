@@ -2,6 +2,7 @@ import { Types } from 'mongoose';
 import { ApiError } from '../../utils/api-error.js';
 import { CustomerModel } from '../customers/customer.model.js';
 import { ProductModel } from '../products/product.model.js';
+import { DiscountTierModel } from '../discount-tiers/discount-tier.model.js';
 import { QuotationModel } from './quotation.model.js';
 const DUPLICATE_KEY_ERROR_CODE = 11000;
 const isDuplicateKeyError = (error) => typeof error === 'object' &&
@@ -39,14 +40,17 @@ const view = (quotation) => ({
     createdAt: quotation.createdAt,
     updatedAt: quotation.updatedAt,
 });
-const PRIVILEGED_ROLES = ['admin', 'sales_manager'];
+// roleaccess.md: Rep permissions are "create & edit quotations" (their own —
+// pipeline access is scoped to "own deals only"); Manager's own permissions
+// list is approve/reject/comment/escalate, not editing a rep's draft. So
+// mutation stays owner-only regardless of role — the route-level `authorize`
+// in quotation.routes.ts already restricts who can reach these at all.
 const findOwned = async (id, requester) => {
     const quotation = await QuotationModel.findById(id).exec();
     if (!quotation)
         throw new ApiError(404, 'Quotation not found', 'QUOTATION_NOT_FOUND');
-    const isOwner = quotation.createdBy.toString() === requester.id;
-    if (!isOwner && !PRIVILEGED_ROLES.includes(requester.role))
-        throw new ApiError(403, 'You do not have access to this quotation', 'FORBIDDEN');
+    if (quotation.createdBy.toString() !== requester.id)
+        throw new ApiError(403, 'You do not own this quotation', 'FORBIDDEN');
     return quotation;
 };
 const assertDraft = (quotation) => {
@@ -78,6 +82,44 @@ const findLineItemIndex = (quotation, itemId) => {
         throw new ApiError(404, 'Line item not found', 'LINE_ITEM_NOT_FOUND');
     return index;
 };
+const calculateBlendedRisk = async (quotation) => {
+    const customer = await CustomerModel.findById(quotation.customer).select('customerTier').exec();
+    if (!customer)
+        throw new ApiError(404, 'Customer not found', 'CUSTOMER_NOT_FOUND');
+    const discountTier = await DiscountTierModel.findOne({ tierName: customer.customerTier }).exec();
+    if (!discountTier)
+        throw new ApiError(404, `No discount tier configured for customer tier "${customer.customerTier}"`, 'DISCOUNT_TIER_NOT_FOUND');
+    const productIds = [...new Set(quotation.lineItems.map((item) => item.product.toString()))];
+    const products = await ProductModel.find({ _id: { $in: productIds } })
+        .select('category')
+        .exec();
+    const categoryByProduct = new Map(products.map((product) => [product._id.toString(), product.category]));
+    const violations = [];
+    for (const item of quotation.lineItems) {
+        const category = categoryByProduct.get(item.product.toString());
+        if (!category)
+            continue;
+        const categoryLimit = discountTier.categorySpecificLimits.find((limit) => limit.category === category);
+        const allowedDiscount = categoryLimit?.maxDiscount ?? discountTier.maxDiscountPercent;
+        if (item.discountPercent > allowedDiscount) {
+            violations.push({
+                lineItem: item._id,
+                category,
+                discountGiven: item.discountPercent,
+                discountAllowed: allowedDiscount,
+                overagePoints: item.discountPercent - allowedDiscount,
+            });
+        }
+    }
+    const score = violations.reduce((sum, violation) => sum + violation.overagePoints, 0);
+    // Formula per the architecture doc's code snippet. Note: the doc's own
+    // worked example (18% discount vs a 10% limit -> claimed "medium") does not
+    // match this formula on a single line item (8 overage points is "low"
+    // here) -- implemented literally per the documented formula, not the prose
+    // example, per product decision.
+    const level = score > 20 ? 'high' : score > 10 ? 'medium' : 'low';
+    return { score, level, violations };
+};
 export const quotationService = {
     create: async (input, requester) => {
         const customer = await CustomerModel.findById(input.customer).exec();
@@ -100,12 +142,19 @@ export const quotationService = {
         }
         throw new ApiError(500, 'Failed to generate a unique quote number', 'QUOTE_NUMBER_CONFLICT');
     },
-    list: async (query) => {
+    // roleaccess.md scoping: Sales Rep sees only their own deals; Finance/Ops
+    // is restricted to approved quotations; Manager (team-level) and Admin see
+    // everything matching the requested filters.
+    list: async (query, requester) => {
         const filter = {};
         if (query.status)
             filter.status = query.status;
         if (query.customer)
             filter.customer = query.customer;
+        if (requester.role === 'sales_rep')
+            filter.createdBy = requester.id;
+        if (requester.role === 'finance')
+            filter.status = 'approved';
         const [items, total] = await Promise.all([
             QuotationModel.find(filter)
                 .sort({ createdAt: -1 })
@@ -124,10 +173,14 @@ export const quotationService = {
             },
         };
     },
-    getById: async (id) => {
+    getById: async (id, requester) => {
         const quotation = await QuotationModel.findById(id).exec();
         if (!quotation)
             throw new ApiError(404, 'Quotation not found', 'QUOTATION_NOT_FOUND');
+        if (requester.role === 'sales_rep' && quotation.createdBy.toString() !== requester.id)
+            throw new ApiError(403, 'You do not have access to this quotation', 'FORBIDDEN');
+        if (requester.role === 'finance' && quotation.status !== 'approved')
+            throw new ApiError(403, 'Finance can only view approved quotations', 'FORBIDDEN');
         return view(quotation);
     },
     update: async (id, input, requester) => {
@@ -198,6 +251,15 @@ export const quotationService = {
         const index = findLineItemIndex(quotation, itemId);
         quotation.lineItems.splice(index, 1);
         await recalculateTotals(quotation);
+        await quotation.save();
+        return view(quotation);
+    },
+    calculateRisk: async (id, requester) => {
+        const quotation = await findOwned(id, requester);
+        assertDraft(quotation);
+        const { score, level, violations } = await calculateBlendedRisk(quotation);
+        quotation.blendedRiskScore = { score, level, violations };
+        quotation.approvalRequired = violations.length > 0;
         await quotation.save();
         return view(quotation);
     },
