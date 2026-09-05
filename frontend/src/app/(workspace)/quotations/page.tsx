@@ -17,6 +17,7 @@ import {
 } from '@dnd-kit/core';
 import { quotationService } from '@/services/quotationService';
 import { customerService } from '@/services/customerService';
+import { inquiryService } from '@/services/inquiryService';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -25,7 +26,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Select } from '@/components/ui/Select';
 import { FilterBar, SearchInput, FilterSelect } from '@/components/ui/FilterBar';
 import { statusLabel, statusTone } from '@/lib/statusMeta';
-import type { Quotation, QuotationStatus } from '@/types';
+import type { Inquiry, Quotation, QuotationStatus } from '@/types';
 
 const COLUMNS: { key: QuotationStatus; label: string }[] = [
   { key: 'Draft', label: 'Draft' },
@@ -58,6 +59,11 @@ export default function QuotationsPage() {
   const { data: customers = [], isLoading: isLoadingCustomers } = useQuery({
     queryKey: ['customers'],
     queryFn: customerService.list,
+  });
+
+  const { data: inquiries = [] } = useQuery({
+    queryKey: ['inquiries'],
+    queryFn: inquiryService.list,
   });
 
   const createMutation = useMutation({
@@ -184,7 +190,7 @@ export default function QuotationsPage() {
 
       {isLoading && <p className="text-slate-400">Loading quotations…</p>}
 
-      {!isLoading && filtered.length === 0 && (
+      {!isLoading && filtered.length === 0 && inquiries.length === 0 && (
         <div className="rounded-xl border border-dashed border-slate-300 bg-white py-16 text-center">
           <p className="text-sm text-slate-500">
             {hasActiveFilters ? 'No quotations match these filters.' : 'No quotations yet.'}
@@ -192,9 +198,25 @@ export default function QuotationsPage() {
         </div>
       )}
 
-      {filtered.length > 0 && view === 'kanban' && (
+      {(filtered.length > 0 || inquiries.length > 0) && view === 'kanban' && (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
+            {inquiries.length > 0 && (
+              <div className="w-64 shrink-0">
+                <div className="mb-2 text-sm font-medium text-blue-600">
+                  New Inquiry ({inquiries.length})
+                </div>
+                <div className="flex min-h-[120px] flex-col gap-2 rounded-xl border border-blue-200 bg-blue-50/40 p-2">
+                  {inquiries.map((inq) => (
+                    <InquiryCard
+                      key={inq.id}
+                      inquiry={inq}
+                      onClick={() => router.push(`/quotations/new?fromInquiry=${inq.id}`)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
             {COLUMNS.map((col) => (
               <KanbanColumn key={col.key} id={col.key} label={col.label}>
                 {filtered
@@ -233,6 +255,35 @@ export default function QuotationsPage() {
         </DndContext>
       )}
 
+      {inquiries.length > 0 && view === 'table' && (
+        <div className="mb-6">
+          <h2 className="mb-2 text-sm font-semibold text-blue-700">New Inquiries</h2>
+          <Table>
+            <Thead>
+              <Th>Received</Th>
+              <Th>Customer</Th>
+              <Th>Requested</Th>
+              <Th>Note</Th>
+              <Th>{''}</Th>
+            </Thead>
+            <Tbody>
+              {inquiries.map((inq) => (
+                <Tr
+                  key={inq.id}
+                  onClick={() => router.push(`/quotations/new?fromInquiry=${inq.id}`)}
+                >
+                  <Td>{new Date(inq.createdAt).toLocaleDateString()}</Td>
+                  <Td className="font-medium text-slate-900">{inq.customerName}</Td>
+                  <Td>{inq.items.reduce((n, i) => n + i.quantity, 0)} item(s)</Td>
+                  <Td>{inq.note ?? '—'}</Td>
+                  <Td className="text-blue-600">Build quotation →</Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </div>
+      )}
+
       {filtered.length > 0 && view === 'table' && (
         <Table>
           <Thead>
@@ -258,6 +309,24 @@ export default function QuotationsPage() {
         </Table>
       )}
     </div>
+  );
+}
+
+function InquiryCard({ inquiry, onClick }: { inquiry: Inquiry; onClick: () => void }) {
+  const itemCount = inquiry.items.reduce((n, i) => n + i.quantity, 0);
+  return (
+    <button
+      onClick={onClick}
+      className="rounded-lg border border-blue-200 bg-white p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-blue-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+    >
+      <div className="text-sm font-medium text-slate-900">{inquiry.customerName}</div>
+      <div className="text-xs text-slate-500">
+        {itemCount} item(s) · {new Date(inquiry.createdAt).toLocaleDateString()}
+      </div>
+      {inquiry.note && (
+        <div className="mt-1 line-clamp-2 text-xs italic text-slate-400">“{inquiry.note}”</div>
+      )}
+    </button>
   );
 }
 

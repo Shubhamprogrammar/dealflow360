@@ -3,9 +3,10 @@ import { ApiError } from '../../utils/api-error.js';
 import type { Role } from '../../types/common.types.js';
 import type { RiskLevel } from '../../types/domain.types.js';
 import { CustomerModel } from '../customers/customer.model.js';
-import { ProductModel } from '../products/product.model.js';
+import { ProductModel, type ProductDocument } from '../products/product.model.js';
 import { DiscountTierModel } from '../discount-tiers/discount-tier.model.js';
 import { UpsellRuleModel } from '../upsell-rules/upsell-rule.model.js';
+import { inquiryService } from '../inquiries/inquiry.service.js';
 import { QuotationModel } from './quotation.model.js';
 import type { QuotationDocument, QuotationLineItem, RiskViolation } from './quotation.model.js';
 import type {
@@ -32,6 +33,25 @@ const isDuplicateKeyError = (error: unknown): boolean =>
 const generateQuoteNumber = (): string =>
   `Q-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
 
+// Creates the empty quotation shell, retrying on the (rare) quote-number
+// collision. Shared by `create` and `createFromInquiry` so the retry logic
+// lives in one place.
+const createQuotationShell = async (fields: {
+  customer: Types.ObjectId;
+  createdBy: string;
+  validUntil?: Date;
+  sourceInquiry?: Types.ObjectId;
+}) => {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      return await QuotationModel.create({ quoteNumber: generateQuoteNumber(), ...fields });
+    } catch (error) {
+      if (!isDuplicateKeyError(error)) throw error;
+    }
+  }
+  throw new ApiError(500, 'Failed to generate a unique quote number', 'QUOTE_NUMBER_CONFLICT');
+};
+
 const view = (quotation: any): QuotationView => ({
   id: quotation._id.toString(),
   quoteNumber: quotation.quoteNumber,
@@ -39,6 +59,7 @@ const view = (quotation: any): QuotationView => ({
   customerName: quotation.customer.companyName || 'Unknown Customer',
   customerTier: quotation.customer.customerTier || 'bronze',
   createdBy: quotation.createdBy._id ? quotation.createdBy._id.toString() : quotation.createdBy.toString(),
+  sourceInquiry: quotation.sourceInquiry?.toString(),
   lineItems: quotation.lineItems.map((item: any) => ({
     id: item._id.toString(),
     product: item.product._id ? item.product._id.toString() : item.product.toString(),
@@ -125,6 +146,43 @@ const findLineItemIndex = (quotation: QuotationDocument, itemId: string): number
   return index;
 };
 
+type LoadedProduct = ProductDocument & { _id: Types.ObjectId };
+
+// Single source of truth for turning a (already-loaded) product + variant +
+// quantity + discount into a stored line item: unitPrice (basePrice + variant
+// adjustment), lineTotal and margin. `addLineItem` and `createFromInquiry`
+// both go through here so the pricing/margin decisions never diverge between
+// the two entry points. Callers own the product lookup + active check so they
+// can phrase the not-found error for their context.
+const buildLineItem = (
+  product: LoadedProduct,
+  variantId: string | undefined,
+  quantity: number,
+  discountPercent: number,
+): QuotationLineItem => {
+  let priceAdjustment = 0;
+  if (variantId) {
+    const variant = product.variants.find((candidate) => candidate._id.toString() === variantId);
+    if (!variant) throw new ApiError(404, 'Product variant not found', 'VARIANT_NOT_FOUND');
+    priceAdjustment = variant.priceAdjustment;
+  }
+
+  const unitPrice = product.basePrice + priceAdjustment;
+  const lineTotal = quantity * unitPrice * (1 - discountPercent / 100);
+  const margin = lineTotal - quantity * product.costPrice;
+
+  return {
+    product: product._id,
+    variantId: variantId ? new Types.ObjectId(variantId) : undefined,
+    quantity,
+    unitPrice,
+    discountPercent,
+    lineTotal,
+    margin,
+    isSubscription: product.isSubscription,
+  } as QuotationLineItem;
+};
+
 // Shared with approval.service.ts (submit-approval needs the same tier ->
 // approvalChain lookup this uses for categorySpecificLimits) so both stay in
 // sync on the "no discount tier configured" error instead of duplicating it.
@@ -199,21 +257,70 @@ export const quotationService = {
     const customer = await CustomerModel.findById(input.customer).exec();
     if (!customer) throw new ApiError(404, 'Customer not found', 'CUSTOMER_NOT_FOUND');
 
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      try {
-        const quotation = await QuotationModel.create({
-          quoteNumber: generateQuoteNumber(),
-          customer: customer._id,
-          createdBy: requester.id,
-          validUntil: input.validUntil ? new Date(input.validUntil) : undefined,
-        });
-        await quotation.populate('customer');
-        return view(quotation);
-      } catch (error) {
-        if (!isDuplicateKeyError(error)) throw error;
+    const quotation = await createQuotationShell({
+      customer: customer._id,
+      createdBy: requester.id,
+      validUntil: input.validUntil ? new Date(input.validUntil) : undefined,
+    });
+    await quotation.populate('customer');
+    return view(quotation);
+  },
+
+  // Rep clicks a "New Inquiry" card in the pipeline: create a draft quotation
+  // for that customer, pre-filled with the requested line items (quantities
+  // carried over, discount left at 0 so the rep still applies pricing/upsell
+  // and submits for approval exactly as for a hand-built quote).
+  createFromInquiry: async (inquiryId: string, requester: Requester): Promise<QuotationView> => {
+    // Claim the inquiry atomically FIRST -- compare-and-set on status. If
+    // another rep already converted it, this throws 409 and nothing else runs.
+    const inquiry = await inquiryService.markConverting(inquiryId);
+    const priorStatus = inquiry.status;
+
+    try {
+      const customer = await CustomerModel.findById(inquiry.customer).exec();
+      if (!customer) throw new ApiError(404, 'Customer not found', 'CUSTOMER_NOT_FOUND');
+
+      // Validate every requested product and build all line items BEFORE
+      // persisting anything -- an item that went inactive since the inquiry
+      // was sent aborts the whole conversion with a named 404, and no
+      // half-built quotation is left behind.
+      const lineItems: QuotationLineItem[] = [];
+      for (const item of inquiry.items) {
+        const product = await ProductModel.findById(item.product).exec();
+        if (!product || !product.isActive)
+          throw new ApiError(
+            404,
+            `Cannot convert inquiry: product "${product?.name ?? item.product.toString()}" is no longer active.`,
+            'PRODUCT_NOT_FOUND',
+          );
+        lineItems.push(buildLineItem(product, item.variantId?.toString(), item.quantity, 0));
       }
+
+      const quotation = await createQuotationShell({
+        customer: customer._id,
+        createdBy: requester.id,
+        sourceInquiry: inquiry._id,
+      });
+      for (const lineItem of lineItems) quotation.lineItems.push(lineItem);
+
+      await recalculateTotals(quotation);
+      await quotation.save();
+
+      await inquiryService.finalizeConversion(
+        inquiry._id.toString(),
+        quotation._id.toString(),
+        requester.id,
+      );
+
+      await quotation.populate('customer');
+      await quotation.populate('lineItems.product');
+      return view(quotation);
+    } catch (error) {
+      // Conversion failed after we claimed the inquiry -- put it back to its
+      // prior status so the rep can fix the problem and retry.
+      await inquiryService.releaseConversion(inquiry._id.toString(), priorStatus);
+      throw error;
     }
-    throw new ApiError(500, 'Failed to generate a unique quote number', 'QUOTE_NUMBER_CONFLICT');
   },
 
   // roleaccess.md scoping: Sales Rep sees only their own deals; Finance/Ops
@@ -291,30 +398,9 @@ export const quotationService = {
     if (!product || !product.isActive)
       throw new ApiError(404, 'Product not found or inactive', 'PRODUCT_NOT_FOUND');
 
-    let priceAdjustment = 0;
-    if (input.variantId) {
-      const variant = product.variants.find(
-        (candidate) => candidate._id.toString() === input.variantId,
-      );
-      if (!variant) throw new ApiError(404, 'Product variant not found', 'VARIANT_NOT_FOUND');
-      priceAdjustment = variant.priceAdjustment;
-    }
-
-    const discountPercent = input.discountPercent ?? 0;
-    const unitPrice = product.basePrice + priceAdjustment;
-    const lineTotal = input.quantity * unitPrice * (1 - discountPercent / 100);
-    const margin = lineTotal - input.quantity * product.costPrice;
-
-    quotation.lineItems.push({
-      product: product._id,
-      variantId: input.variantId ? new Types.ObjectId(input.variantId) : undefined,
-      quantity: input.quantity,
-      unitPrice,
-      discountPercent,
-      lineTotal,
-      margin,
-      isSubscription: product.isSubscription,
-    } as QuotationLineItem);
+    quotation.lineItems.push(
+      buildLineItem(product, input.variantId, input.quantity, input.discountPercent ?? 0),
+    );
 
     await recalculateTotals(quotation);
     await quotation.save();

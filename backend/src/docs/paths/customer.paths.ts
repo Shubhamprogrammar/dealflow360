@@ -64,7 +64,7 @@ export const customerPaths = {
     get: {
       tags: ['Customers'],
       summary: 'Fetch one customer',
-      description: 'Portal credentials and magic-link fields are never returned.',
+      description: 'Magic-link tokens are stored in a separate collection and never returned.',
       security: [{ bearerAuth: [] }],
       parameters: [idParam],
       responses: {

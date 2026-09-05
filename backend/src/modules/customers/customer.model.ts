@@ -6,9 +6,6 @@ export type CustomerDocument = {
   contactEmail: string;
   contactName?: string;
   customerTier: CustomerTier;
-  portalPasswordHash?: string;
-  magicLinkToken?: string;
-  magicLinkExpiry?: Date;
   creditScore?: number;
   paymentTerms: string;
   assignedRep?: Types.ObjectId;
@@ -28,9 +25,6 @@ const schema = new Schema<CustomerDocument>(
     },
     contactName: { type: String, trim: true },
     customerTier: { type: String, enum: CUSTOMER_TIERS, default: 'bronze', index: true },
-    portalPasswordHash: { type: String, select: false },
-    magicLinkToken: { type: String, select: false, index: true },
-    magicLinkExpiry: { type: Date, select: false },
     creditScore: { type: Number, min: 0 },
     paymentTerms: { type: String, default: 'Net 30', trim: true },
     assignedRep: { type: Schema.Types.ObjectId, ref: 'User', index: true },

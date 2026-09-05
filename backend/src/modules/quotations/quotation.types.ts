@@ -74,6 +74,7 @@ export type QuotationView = {
   customerName: string;
   customerTier: string;
   createdBy: string;
+  sourceInquiry?: string;
   lineItems: QuotationLineItemView[];
   subtotal: number;
   totalDiscount: number;

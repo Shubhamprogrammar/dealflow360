@@ -9,6 +9,14 @@ export const createQuotation = async (req: Request, res: Response): Promise<void
   sendSuccess(res, 201, 'Quotation created successfully', quotation);
 };
 
+export const createQuotationFromInquiry = async (req: Request, res: Response): Promise<void> => {
+  const quotation = await quotationService.createFromInquiry(
+    req.params.inquiryId as string,
+    req.user!,
+  );
+  sendSuccess(res, 201, 'Quotation created from inquiry', quotation);
+};
+
 export const listQuotations = async (req: Request, res: Response): Promise<void> => {
   const { items, pagination } = await quotationService.list(
     req.query as unknown as ListQuotationsQuery,

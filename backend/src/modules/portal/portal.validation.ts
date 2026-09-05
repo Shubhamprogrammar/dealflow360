@@ -10,6 +10,25 @@ export const portalQuotationIdSchema = z.object({
   headers,
 });
 
+export const submitInquirySchema = z.object({
+  body: z.object({
+    items: z
+      .array(
+        z.object({
+          product: objectId,
+          variantId: objectId.optional(),
+          quantity: z.coerce.number().int().min(1),
+          note: z.string().trim().min(1).max(1000).optional(),
+        }),
+      )
+      .min(1, 'Select at least one product'),
+    note: z.string().trim().min(1).max(2000).optional(),
+  }),
+  params: z.object({}),
+  query: z.object({}),
+  headers,
+});
+
 export const requestChangesSchema = z.object({
   body: z
     .object({
