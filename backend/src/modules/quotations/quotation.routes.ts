@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import { asyncHandler } from '../../utils/async-handler.js';
 import { authenticate } from '../../middleware/auth.middleware.js';
+import { authorize } from '../../middleware/role.middleware.js';
 import { validate } from '../../middleware/validate.middleware.js';
 import {
   addLineItem,
+  calculateRisk,
   createQuotation,
   deleteQuotation,
   getQuotation,
@@ -24,46 +26,49 @@ import {
 
 export const quotationRoutes = Router();
 
-quotationRoutes.post(
-  '/',
-  authenticate,
-  validate(createQuotationSchema),
-  asyncHandler(createQuotation),
-);
-quotationRoutes.get(
-  '/',
-  authenticate,
-  validate(listQuotationsSchema),
-  asyncHandler(listQuotations),
-);
-quotationRoutes.get('/:id', authenticate, validate(quotationIdSchema), asyncHandler(getQuotation));
+// roleaccess.md: only Sales Rep and Sales Manager can create/edit quotations.
+// Finance/Admin are read-only here (scoped further in the service — see
+// quotation.service.ts).
+const canBuild = authorize('sales_rep', 'sales_manager');
+
+quotationRoutes.use(authenticate);
+
+quotationRoutes.post('/', canBuild, validate(createQuotationSchema), asyncHandler(createQuotation));
+quotationRoutes.get('/', validate(listQuotationsSchema), asyncHandler(listQuotations));
+quotationRoutes.get('/:id', validate(quotationIdSchema), asyncHandler(getQuotation));
 quotationRoutes.put(
   '/:id',
-  authenticate,
+  canBuild,
   validate(updateQuotationSchema),
   asyncHandler(updateQuotation),
 );
 quotationRoutes.delete(
   '/:id',
-  authenticate,
+  canBuild,
   validate(quotationIdSchema),
   asyncHandler(deleteQuotation),
 );
 quotationRoutes.post(
   '/:id/line-items',
-  authenticate,
+  canBuild,
   validate(addLineItemSchema),
   asyncHandler(addLineItem),
 );
 quotationRoutes.put(
   '/:id/line-items/:itemId',
-  authenticate,
+  canBuild,
   validate(updateLineItemSchema),
   asyncHandler(updateLineItem),
 );
 quotationRoutes.delete(
   '/:id/line-items/:itemId',
-  authenticate,
+  canBuild,
   validate(lineItemIdSchema),
   asyncHandler(removeLineItem),
+);
+quotationRoutes.post(
+  '/:id/calculate-risk',
+  canBuild,
+  validate(quotationIdSchema),
+  asyncHandler(calculateRisk),
 );
