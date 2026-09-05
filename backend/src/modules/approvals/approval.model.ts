@@ -5,7 +5,7 @@ import {
   APPROVAL_STEP_STATUSES,
   type ApprovalFinalStatus,
   type ApprovalStepStatus,
-} from '../../types/domain.types.js'
+} from '../../types/domain.types.js';
 
 export type ApprovalStep = {
   _id: Types.ObjectId;

@@ -38,6 +38,11 @@ const PATH_VARIABLE: Record<string, Record<string, string>> = {
   '/warehouses/{id}': { id: 'warehouseId' },
   '/warehouses/{id}/stock': { id: 'warehouseId' },
   '/warehouses/{id}/stock/{productId}': { id: 'warehouseId', productId: 'productId' },
+  '/subscription-plans/{id}': { id: 'subscriptionPlanId' },
+  '/subscription-plans/{id}/proration': { id: 'subscriptionPlanId' },
+  '/subscription-plans/{id}/cancellation': { id: 'subscriptionPlanId' },
+  '/customers/{id}': { id: 'customerId' },
+  '/customers/{id}/assign-rep': { id: 'customerId' },
 };
 
 /** Fixed so regenerating the collection produces no spurious diff. */
@@ -117,6 +122,24 @@ const TESTS: Record<string, string[]> = {
     "if (list[0] && list[0]._id) pm.collectionVariables.set('fromWarehouseId', list[0]._id);",
     "if (list[1] && list[1]._id) pm.collectionVariables.set('toWarehouseId', list[1]._id);",
   ],
+  'POST /subscription-plans': [
+    'const body = pm.response.json();',
+    'const id = body.data && (body.data._id || body.data.id);',
+    "if (id) pm.collectionVariables.set('subscriptionPlanId', id);",
+  ],
+  'GET /subscription-plans': [
+    'const first = (pm.response.json().data || [])[0];',
+    "if (first && first._id) pm.collectionVariables.set('subscriptionPlanId', first._id);",
+  ],
+  'POST /customers': [
+    'const body = pm.response.json();',
+    'const id = body.data && (body.data._id || body.data.id);',
+    "if (id) pm.collectionVariables.set('customerId', id);",
+  ],
+  'GET /customers': [
+    'const first = (pm.response.json().data || [])[0];',
+    "if (first && first._id) pm.collectionVariables.set('customerId', first._id);",
+  ],
   'GET /pricelists': [
     'const first = (pm.response.json().data || [])[0];',
     "if (first && first._id) pm.collectionVariables.set('priceListId', first._id);",
@@ -174,6 +197,8 @@ const sample = (rawSchema: unknown, depth = 0, property = ''): unknown => {
       if (schema.format === 'email') return 'user@example.com';
       // A validFrom equal to validTo is rejected with 422, so the two need distinct values.
       if (schema.format === 'date-time') return DATE_EXAMPLE[property] ?? DATE_EXAMPLE.validFrom;
+      if (str(schema.description)?.includes('sales_rep')) return '{{salesRepId}}';
+      if (str(schema.description)?.includes('24-hex user id')) return '{{userId}}';
       if (str(schema.description)?.includes('24-hex warehouse id'))
         return property === 'toWarehouse' ? '{{toWarehouseId}}' : '{{fromWarehouseId}}';
       return str(schema.description)?.includes('24-hex') ? '{{productId}}' : 'string';
@@ -302,6 +327,9 @@ const collection = {
     { key: 'warehouseId', value: '', type: 'string' },
     { key: 'fromWarehouseId', value: '', type: 'string' },
     { key: 'toWarehouseId', value: '', type: 'string' },
+    { key: 'subscriptionPlanId', value: '', type: 'string' },
+    { key: 'customerId', value: '', type: 'string' },
+    { key: 'salesRepId', value: '', type: 'string' },
     { key: 'tierName', value: 'gold', type: 'string' },
   ],
 };
