@@ -70,3 +70,20 @@ export const lineItemIdSchema = z.object({
   query: z.object({}),
   headers,
 });
+
+export const respondNegotiationSchema = z.object({
+  body: z.object({
+    lineItems: z
+      .array(
+        z.object({
+          itemId: objectId,
+          discountPercent: z.coerce.number().min(0).max(100),
+        }),
+      )
+      .optional(),
+    repResponse: z.string().trim().min(1).max(2000),
+  }),
+  params: z.object({ id: objectId }),
+  query: z.object({}),
+  headers,
+});

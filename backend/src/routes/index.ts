@@ -15,6 +15,7 @@ import { approvalRoutes } from '../modules/approvals/approval.routes.js';
 import { orderRoutes } from '../modules/orders/order.routes.js';
 import { auditLogRoutes } from '../modules/audit-logs/audit-log.routes.js';
 import { subscriptionRoutes } from '../modules/subscriptions/subscription.routes.js';
+import { portalRoutes } from '../modules/portal/portal.routes.js';
 import { audit } from '../middleware/audit.middleware.js';
 
 export const routes = Router();
@@ -36,3 +37,4 @@ routes.use('/approvals', approvalRoutes);
 routes.use('/orders', orderRoutes);
 routes.use('/audit-logs', auditLogRoutes);
 routes.use('/subscriptions', subscriptionRoutes);
+routes.use('/portal', portalRoutes);

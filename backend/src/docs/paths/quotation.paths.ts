@@ -195,4 +195,47 @@ export const quotationPaths = {
       },
     },
   },
+  '/quotations/{id}/respond-negotiation': {
+    post: {
+      tags: ['Quotations'],
+      summary: "Respond to a customer's negotiation request",
+      description:
+        'Optionally adjusts line-item discounts and always records a rep response. Re-checks ' +
+        'the risk score and re-routes through approval if the new terms now require it.',
+      security: [{ bearerAuth: [] }],
+      parameters: [id],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              required: ['repResponse'],
+              properties: {
+                lineItems: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    required: ['itemId', 'discountPercent'],
+                    properties: {
+                      itemId: { type: 'string', description: '24-hex line item id' },
+                      discountPercent: { type: 'number', minimum: 0, maximum: 100 },
+                    },
+                  },
+                },
+                repResponse: { type: 'string', minLength: 1, maxLength: 2000 },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        200: { description: 'Negotiation response recorded' },
+        400: { description: 'Validation failed', content: error },
+        403: { description: 'Not permitted' },
+        404: { description: 'Quotation, line item, or discount tier not found' },
+        409: { description: 'Quotation is not under negotiation' },
+      },
+    },
+  },
 } satisfies Paths;

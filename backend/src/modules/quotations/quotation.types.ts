@@ -28,6 +28,11 @@ export type UpdateLineItemInput = {
   discountPercent?: number;
 };
 
+export type RespondNegotiationInput = {
+  lineItems?: Array<{ itemId: string; discountPercent: number }>;
+  repResponse: string;
+};
+
 export type Pagination = {
   page: number;
   limit: number;

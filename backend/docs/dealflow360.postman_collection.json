@@ -2346,6 +2346,46 @@
             "description": "Get upsell suggestions for a quotation"
           },
           "response": []
+        },
+        {
+          "name": "Respond to a customer's negotiation request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/quotations/:id/respond-negotiation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "quotations",
+                ":id",
+                "respond-negotiation"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "Respond to a customer's negotiation request\n\nOptionally adjusts line-item discounts and always records a rep response. Re-checks the risk score and re-routes through approval if the new terms now require it.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lineItems\": [\n    {\n      \"itemId\": \"{{productId}}\",\n      \"discountPercent\": 0\n    }\n  ],\n  \"repResponse\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
         }
       ]
     },
@@ -2709,6 +2749,106 @@
               ]
             },
             "description": "Enqueue the recurring billing run for all due subscriptions\n\nEnqueues a BullMQ job rather than running the billing sweep inline; the actual invoice generation happens asynchronously in the background worker."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Portal",
+      "description": "Customer-facing quotation viewing and negotiation",
+      "item": [
+        {
+          "name": "Customer: view one of the customer's own quotations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/portal/quotations/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "portal",
+                "quotations",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "Customer: view one of the customer's own quotations\n\nRequires a customer bearer token (from the magic-link or portal-login flow), not a staff token. Only visible once the quotation has cleared internal approval. The response omits margin, risk score, and approval fields entirely."
+          },
+          "response": []
+        },
+        {
+          "name": "Customer: add comments or propose a counter-discount",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/portal/quotations/:id/request-changes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "portal",
+                "quotations",
+                ":id",
+                "request-changes"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "Customer: add comments or propose a counter-discount",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comments\": [\n    {\n      \"lineItemIndex\": 0,\n      \"comment\": \"string\"\n    }\n  ],\n  \"counterDiscountProposal\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Customer: confirm the quotation as-is",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/portal/quotations/:id/confirm",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "portal",
+                "quotations",
+                ":id",
+                "confirm"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "Customer: confirm the quotation as-is\n\nMarks the quotation confirmed. Does not create an order."
           },
           "response": []
         }

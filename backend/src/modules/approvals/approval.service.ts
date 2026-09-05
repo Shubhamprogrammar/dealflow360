@@ -1,9 +1,16 @@
 import { Types } from 'mongoose';
 import { ApiError } from '../../utils/api-error.js';
 import type { Role } from '../../types/common.types.js';
-import { getDiscountTierForCustomer, quotationService } from '../quotations/quotation.service.js';
+import {
+  calculateBlendedRisk,
+  getDiscountTierForCustomer,
+  quotationService,
+  recalculateTotals,
+} from '../quotations/quotation.service.js';
 import { QuotationModel } from '../quotations/quotation.model.js';
-import type { QuotationView } from '../quotations/quotation.types.js';
+import type { QuotationLineItem } from '../quotations/quotation.model.js';
+import type { QuotationView, RespondNegotiationInput } from '../quotations/quotation.types.js';
+import { ProductModel } from '../products/product.model.js';
 import type { ApprovalChainRule } from '../discount-tiers/discount-tier.model.js';
 import { ApprovalModel } from './approval.model.js';
 import type { ApprovalDocument, ApprovalStep } from './approval.model.js';
@@ -79,6 +86,46 @@ const findApprovalChainRule = (rules: ApprovalChainRule[], score: number): Appro
   return highest;
 };
 
+// Shared by submitForApproval (draft -> pending_approval/approved) and
+// respondToNegotiation (under_negotiation -> pending_approval/approved):
+// given a quotation whose blendedRiskScore/approvalRequired are already
+// current, either clear it straight to approved or build a fresh approval
+// chain. Callers are responsible for having just recomputed the risk score.
+const routeQuotationThroughApproval = async (
+  quotation: ReturnType<typeof QuotationModel.hydrate>,
+): Promise<ApprovalView | undefined> => {
+  if (!quotation.approvalRequired) {
+    quotation.status = 'approved';
+    await quotation.save();
+    return undefined;
+  }
+
+  const discountTier = await getDiscountTierForCustomer(quotation.customer);
+  const rule = findApprovalChainRule(discountTier.approvalChain, quotation.blendedRiskScore.score);
+
+  const approvalChain = rule.requiredApprovers.map(
+    (role, index) =>
+      ({
+        step: index,
+        approverRole: role,
+        status: 'pending',
+      }) as ApprovalStep,
+  );
+
+  const approval = await ApprovalModel.create({
+    quotation: quotation._id,
+    approvalChain,
+    currentStep: 0,
+    finalStatus: 'pending',
+  });
+
+  quotation.status = 'pending_approval';
+  quotation.currentApprovalStep = 0;
+  await quotation.save();
+
+  return view(approval);
+};
+
 export const approvalService = {
   submitForApproval: async (
     quotationId: string,
@@ -86,49 +133,72 @@ export const approvalService = {
   ): Promise<{ quotation: QuotationView; approval?: ApprovalView }> => {
     // Refresh the risk score at the moment of submission, reusing B1/B2's
     // ownership + draft-only guards instead of duplicating them here.
-    const refreshed = await quotationService.calculateRisk(quotationId, requester);
+    await quotationService.calculateRisk(quotationId, requester);
 
     const quotation = await QuotationModel.findById(quotationId).exec();
     if (!quotation) throw new ApiError(404, 'Quotation not found', 'QUOTATION_NOT_FOUND');
     if (quotation.lineItems.length === 0)
       throw new ApiError(422, 'Cannot submit an empty quotation for approval', 'EMPTY_QUOTATION');
 
-    if (!refreshed.approvalRequired) {
-      // No policy violation -- nothing to route through approvers.
-      quotation.status = 'approved';
-      await quotation.save();
-      const updated = await quotationService.getById(quotationId, requester);
-      return { quotation: updated };
+    const approval = await routeQuotationThroughApproval(quotation);
+    const updated = await quotationService.getById(quotationId, requester);
+    return { quotation: updated, approval };
+  },
+
+  // roleaccess.md: rep permission "Respond to customer negotiation" -- same
+  // canBuild gate as the rest of quotation mutation, but the quotation
+  // reaches here via the portal's request-changes flow rather than B1's
+  // usual draft-only path, so it gets its own status guard.
+  respondToNegotiation: async (
+    quotationId: string,
+    requester: Requester,
+    input: RespondNegotiationInput,
+  ): Promise<QuotationView> => {
+    const quotation = await QuotationModel.findById(quotationId).exec();
+    if (!quotation) throw new ApiError(404, 'Quotation not found', 'QUOTATION_NOT_FOUND');
+    if (quotation.createdBy.toString() !== requester.id)
+      throw new ApiError(403, 'You do not own this quotation', 'FORBIDDEN');
+    if (quotation.status !== 'under_negotiation')
+      throw new ApiError(
+        409,
+        'Only quotations under negotiation can be responded to',
+        'QUOTATION_NOT_UNDER_NEGOTIATION',
+      );
+
+    if (input.lineItems?.length) {
+      const costPriceByProduct = new Map<string, number>();
+      for (const edit of input.lineItems) {
+        const index = quotation.lineItems.findIndex(
+          (lineItem) => lineItem._id.toString() === edit.itemId,
+        );
+        if (index === -1)
+          throw new ApiError(404, `Line item ${edit.itemId} not found`, 'LINE_ITEM_NOT_FOUND');
+        const item = quotation.lineItems[index] as QuotationLineItem;
+
+        let costPrice = costPriceByProduct.get(item.product.toString());
+        if (costPrice === undefined) {
+          const product = await ProductModel.findById(item.product).select('costPrice').exec();
+          if (!product) throw new ApiError(404, 'Product not found', 'PRODUCT_NOT_FOUND');
+          costPrice = product.costPrice;
+          costPriceByProduct.set(item.product.toString(), costPrice);
+        }
+
+        item.discountPercent = edit.discountPercent;
+        item.lineTotal = item.quantity * item.unitPrice * (1 - item.discountPercent / 100);
+        item.margin = item.lineTotal - item.quantity * costPrice;
+      }
+      await recalculateTotals(quotation);
     }
 
-    const discountTier = await getDiscountTierForCustomer(quotation.customer);
-    const rule = findApprovalChainRule(
-      discountTier.approvalChain,
-      refreshed.blendedRiskScore.score,
-    );
+    quotation.customerNegotiation.repResponse = input.repResponse;
+    quotation.customerNegotiation.lastModifiedBy = 'rep';
 
-    const approvalChain = rule.requiredApprovers.map(
-      (role, index) =>
-        ({
-          step: index,
-          approverRole: role,
-          status: 'pending',
-        }) as ApprovalStep,
-    );
+    const { score, level, violations } = await calculateBlendedRisk(quotation);
+    quotation.blendedRiskScore = { score, level, violations };
+    quotation.approvalRequired = violations.length > 0;
 
-    const approval = await ApprovalModel.create({
-      quotation: quotation._id,
-      approvalChain,
-      currentStep: 0,
-      finalStatus: 'pending',
-    });
-
-    quotation.status = 'pending_approval';
-    quotation.currentApprovalStep = 0;
-    await quotation.save();
-
-    const updated = await quotationService.getById(quotationId, requester);
-    return { quotation: updated, approval: view(approval) };
+    await routeQuotationThroughApproval(quotation);
+    return quotationService.getById(quotationId, requester);
   },
 
   approve: async (
