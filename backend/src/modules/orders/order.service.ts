@@ -1,9 +1,11 @@
 import { Types } from 'mongoose';
 import { ApiError } from '../../utils/api-error.js';
+import { QuotationModel } from '../quotations/quotation.model.js';
 import { WarehouseModel } from '../warehouses/warehouse.model.js';
 import { OrderModel } from './order.model.js';
 import type { OrderDocument, OrderLineItem, WarehouseSplit, Backorder } from './order.model.js';
 import type {
+  CreateOrderInput,
   FulfillmentPreview,
   ManualSplitInput,
   OrderView,
@@ -47,6 +49,7 @@ const view = (order: OrderDocument & { _id: Types.ObjectId }): OrderView => ({
   })),
   totalAmount: order.totalAmount,
   paymentStatus: order.paymentStatus,
+  promisedDeliveryDate: order.promisedDeliveryDate,
   createdAt: order.createdAt,
   updatedAt: order.updatedAt,
 });
@@ -65,6 +68,15 @@ const assertFulfillmentPending = (order: OrderDocument): void => {
       'ALREADY_FULFILLED',
     );
 };
+
+const generateOrderNumber = (): string =>
+  `O-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
+
+const isDuplicateKeyError = (error: unknown): boolean =>
+  typeof error === 'object' &&
+  error !== null &&
+  'code' in error &&
+  (error as { code?: number }).code === 11000;
 
 // Greedy: for each line item, prioritize whichever active warehouse currently
 // holds the most stock of that specific product, allocate from there first,
@@ -189,6 +201,49 @@ const applySplit = async (
 };
 
 export const orderService = {
+  createFromQuotation: async (input: CreateOrderInput): Promise<OrderView> => {
+    const quotation = await QuotationModel.findById(input.quotation).exec();
+    if (!quotation) throw new ApiError(404, 'Quotation not found', 'QUOTATION_NOT_FOUND');
+    if (quotation.status !== 'confirmed')
+      throw new ApiError(
+        409,
+        'Only customer-confirmed quotations can be converted to orders',
+        'QUOTATION_NOT_CONFIRMED',
+      );
+    if (quotation.lineItems.length === 0)
+      throw new ApiError(422, 'Cannot create an order from an empty quotation', 'EMPTY_QUOTATION');
+
+    const existing = await OrderModel.findOne({ quotation: quotation._id }).exec();
+    if (existing)
+      throw new ApiError(409, 'An order already exists for this quotation', 'ORDER_ALREADY_EXISTS');
+
+    const orderData = {
+      quotation: quotation._id,
+      customer: quotation.customer,
+      lineItems: quotation.lineItems.map((item) => ({
+        product: item.product,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        lineTotal: item.lineTotal,
+        isSubscription: item.isSubscription,
+      })),
+      totalAmount: quotation.grandTotal,
+      promisedDeliveryDate: input.promisedDeliveryDate
+        ? new Date(input.promisedDeliveryDate)
+        : undefined,
+    };
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        const order = await OrderModel.create({ ...orderData, orderNumber: generateOrderNumber() });
+        return view(order);
+      } catch (error) {
+        if (!isDuplicateKeyError(error)) throw error;
+      }
+    }
+    throw new ApiError(500, 'Failed to generate a unique order number', 'ORDER_NUMBER_CONFLICT');
+  },
+
   calculateFulfillment: async (orderId: string): Promise<FulfillmentPreview> => {
     const order = await findOrder(orderId);
     const warehouses = await WarehouseModel.find({ isActive: true }).exec();

@@ -2551,6 +2551,51 @@
       "description": "Order fulfillment allocation",
       "item": [
         {
+          "name": "Convert a customer-confirmed quotation to an order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ]
+            },
+            "description": "Convert a customer-confirmed quotation to an order",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quotation\": \"{{productId}}\",\n  \"promisedDeliveryDate\": \"2026-01-01T00:00:00.000Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const id = body.data && (body.data._id || body.data.id);",
+                  "if (id) pm.collectionVariables.set('orderId', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Preview the automatic warehouse fulfillment split",
           "request": {
             "method": "POST",
@@ -2633,6 +2678,97 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"warehouseSplit\": [\n    {\n      \"warehouse\": \"{{fromWarehouseId}}\",\n      \"items\": [\n        {\n          \"product\": \"{{productId}}\",\n          \"quantity\": 1\n        }\n      ]\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Invoices",
+      "description": "One-time invoicing and payment tracking",
+      "item": [
+        {
+          "name": "Generate an invoice for an order’s one-time items",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/invoices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invoices"
+              ]
+            },
+            "description": "Generate an invoice for an order’s one-time items",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order\": \"{{orderId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const id = body.data && (body.data._id || body.data.id);",
+                  "if (id) pm.collectionVariables.set('invoiceId', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mark an invoice as paid",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/invoices/:id/payment",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invoices",
+                ":id",
+                "payment"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{invoiceId}}"
+                }
+              ]
+            },
+            "description": "Mark an invoice as paid",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paidDate\": \"2026-01-01T00:00:00.000Z\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2855,6 +2991,129 @@
       ]
     },
     {
+      "name": "Dashboard",
+      "description": "Deal health and operational risk indicators",
+      "item": [
+        {
+          "name": "List stalled deals",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/stalled-deals",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard",
+                "stalled-deals"
+              ],
+              "query": [
+                {
+                  "key": "asOf",
+                  "value": "",
+                  "description": "Optional ISO 8601 timestamp used as the dashboard clock.",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "100",
+                  "description": "Maximum number of results to return.",
+                  "disabled": true
+                },
+                {
+                  "key": "staleDays",
+                  "value": "7",
+                  "description": "Number of inactive days before a quotation is stalled.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List stalled deals\n\nReturns active quotations whose updatedAt is older than staleDays. Sales reps see their own quotations; managers and admins see all quotations."
+          },
+          "response": []
+        },
+        {
+          "name": "List discount anomalies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/discount-anomalies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard",
+                "discount-anomalies"
+              ],
+              "query": [
+                {
+                  "key": "asOf",
+                  "value": "",
+                  "description": "Optional ISO 8601 timestamp used as the dashboard clock.",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "100",
+                  "description": "Maximum number of results to return.",
+                  "disabled": true
+                },
+                {
+                  "key": "minDiscountPercent",
+                  "value": "0",
+                  "description": "Only return anomalies at or above this discount percentage.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List discount anomalies\n\nReturns quotation line items whose discount exceeds the applicable customer-tier or product ceiling, ordered by overage."
+          },
+          "response": []
+        },
+        {
+          "name": "List delivery slippage",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/delivery-slippage",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard",
+                "delivery-slippage"
+              ],
+              "query": [
+                {
+                  "key": "asOf",
+                  "value": "",
+                  "description": "Optional ISO 8601 timestamp used as the dashboard clock.",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "100",
+                  "description": "Maximum number of results to return.",
+                  "disabled": true
+                },
+                {
+                  "key": "minOverdueDays",
+                  "value": "0",
+                  "description": "Minimum number of days past the promised delivery date.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List delivery slippage\n\nReturns orders whose promised delivery date has passed and that have not been delivered. Sales reps see orders linked to their quotations; managers and admins see all orders."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Health",
       "description": "Liveness and readiness",
       "item": [
@@ -2996,6 +3255,11 @@
     },
     {
       "key": "subscriptionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "invoiceId",
       "value": "",
       "type": "string"
     }

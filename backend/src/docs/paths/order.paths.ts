@@ -31,7 +31,35 @@ const manualSplit = {
   },
 } as const;
 
+const createOrder = {
+  type: 'object',
+  required: ['quotation'],
+  properties: {
+    quotation: { type: 'string', description: '24-hex confirmed quotation id' },
+    promisedDeliveryDate: { type: 'string', format: 'date-time' },
+  },
+} as const;
+
 export const orderPaths = {
+  '/orders': {
+    post: {
+      tags: ['Orders'],
+      summary: 'Convert a customer-confirmed quotation to an order',
+      security: [{ bearerAuth: [] }],
+      requestBody: {
+        required: true,
+        content: { 'application/json': { schema: createOrder } },
+      },
+      responses: {
+        201: { description: 'Order created' },
+        400: { description: 'Validation failed' },
+        403: { description: 'Insufficient role' },
+        404: { description: 'Quotation not found' },
+        409: { description: 'Quotation is not confirmed or already has an order' },
+        422: { description: 'Quotation is empty' },
+      },
+    },
+  },
   '/orders/{id}/calculate-fulfillment': {
     post: {
       tags: ['Orders'],

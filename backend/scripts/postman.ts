@@ -44,6 +44,7 @@ const PATH_VARIABLE: Record<string, Record<string, string>> = {
   '/customers/{id}': { id: 'customerId' },
   '/customers/{id}/assign-rep': { id: 'customerId' },
   '/subscriptions/{id}/prorate': { id: 'subscriptionId' },
+  '/invoices/{id}/payment': { id: 'invoiceId' },
 };
 
 /** Fixed so regenerating the collection produces no spurious diff. */
@@ -144,6 +145,16 @@ const TESTS: Record<string, string[]> = {
     'const body = pm.response.json();',
     'const id = body.data && (body.data._id || body.data.id);',
     "if (id) pm.collectionVariables.set('subscriptionId', id);",
+  ],
+  'POST /orders': [
+    'const body = pm.response.json();',
+    'const id = body.data && (body.data._id || body.data.id);',
+    "if (id) pm.collectionVariables.set('orderId', id);",
+  ],
+  'POST /invoices': [
+    'const body = pm.response.json();',
+    'const id = body.data && (body.data._id || body.data.id);',
+    "if (id) pm.collectionVariables.set('invoiceId', id);",
   ],
 };
 
@@ -337,6 +348,7 @@ const collection = {
     { key: 'tierName', value: 'gold', type: 'string' },
     { key: 'orderId', value: '', type: 'string' },
     { key: 'subscriptionId', value: '', type: 'string' },
+    { key: 'invoiceId', value: '', type: 'string' },
   ],
 };
 

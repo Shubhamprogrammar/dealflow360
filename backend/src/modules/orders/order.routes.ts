@@ -3,8 +3,13 @@ import { asyncHandler } from '../../utils/async-handler.js';
 import { authenticate } from '../../middleware/auth.middleware.js';
 import { authorize } from '../../middleware/role.middleware.js';
 import { validate } from '../../middleware/validate.middleware.js';
-import { calculateFulfillment, confirmFulfillment, manualSplit } from './order.controller.js';
-import { manualSplitSchema, orderIdSchema } from './order.validation.js';
+import {
+  calculateFulfillment,
+  confirmFulfillment,
+  createOrder,
+  manualSplit,
+} from './order.controller.js';
+import { createOrderSchema, manualSplitSchema, orderIdSchema } from './order.validation.js';
 
 export const orderRoutes = Router();
 
@@ -15,8 +20,11 @@ export const orderRoutes = Router();
 // not hand-override it.
 const canTrigger = authorize('sales_rep', 'finance');
 const canOverride = authorize('finance');
+const canCreateOrder = authorize('sales_rep', 'finance', 'admin');
 
 orderRoutes.use(authenticate);
+
+orderRoutes.post('/', canCreateOrder, validate(createOrderSchema), asyncHandler(createOrder));
 
 orderRoutes.post(
   '/:id/calculate-fulfillment',

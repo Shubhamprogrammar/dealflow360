@@ -3,6 +3,16 @@ import { z } from 'zod';
 const headers = z.record(z.unknown());
 const objectId = z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid id');
 
+export const createOrderSchema = z.object({
+  body: z.object({
+    quotation: objectId,
+    promisedDeliveryDate: z.string().datetime().optional(),
+  }),
+  params: z.object({}),
+  query: z.object({}),
+  headers,
+});
+
 export const orderIdSchema = z.object({
   body: z.object({}),
   params: z.object({ id: objectId }),

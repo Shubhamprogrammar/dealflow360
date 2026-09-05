@@ -14,6 +14,8 @@ import { subscriptionPlanPaths } from './paths/subscription-plan.paths.js';
 import { subscriptionPaths } from './paths/subscription.paths.js';
 import { userPaths } from './paths/user.paths.js';
 import { warehousePaths } from './paths/warehouse.paths.js';
+import { dashboardPaths } from './paths/dashboard.paths.js';
+import { invoicePaths } from './paths/invoice.paths.js';
 
 export const swaggerSpec = {
   openapi: '3.0.3',
@@ -38,11 +40,13 @@ export const swaggerSpec = {
     { name: 'Quotations', description: 'Quotation building, risk scoring, and submission' },
     { name: 'Approvals', description: 'Approval queue and approval decisions' },
     { name: 'Orders', description: 'Order fulfillment allocation' },
+    { name: 'Invoices', description: 'One-time invoicing and payment tracking' },
     {
       name: 'Subscriptions',
       description: 'Subscription lifecycle, proration and recurring billing',
     },
     { name: 'Portal', description: 'Customer-facing quotation viewing and negotiation' },
+    { name: 'Dashboard', description: 'Deal health and operational risk indicators' },
     { name: 'Health', description: 'Liveness and readiness' },
   ],
   components: {
@@ -362,6 +366,8 @@ export const swaggerSpec = {
     ...orderPaths,
     ...subscriptionPaths,
     ...portalPaths,
+    ...dashboardPaths,
+    ...invoicePaths,
     ...healthPaths,
   },
 } as const;

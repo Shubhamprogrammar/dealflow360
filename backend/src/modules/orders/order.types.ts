@@ -1,5 +1,10 @@
 import type { FulfillmentStatus } from '../../types/domain.types.js';
 
+export type CreateOrderInput = {
+  quotation: string;
+  promisedDeliveryDate?: string;
+};
+
 export type WarehouseSplitItemView = {
   product: string;
   quantity: number;
@@ -42,6 +47,7 @@ export type OrderView = {
   backorders: BackorderView[];
   totalAmount: number;
   paymentStatus: string;
+  promisedDeliveryDate?: Date;
   createdAt: Date;
   updatedAt: Date;
 };
