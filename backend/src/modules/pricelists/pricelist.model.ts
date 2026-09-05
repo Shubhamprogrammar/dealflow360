@@ -30,7 +30,7 @@ const schema = new Schema<PriceListDocument>(
   {
     name: { type: String, required: true, trim: true },
     customerTier: { type: String, enum: CUSTOMER_TIERS, required: true, index: true },
-    currency: { type: String, default: 'USD', uppercase: true, trim: true },
+    currency: { type: String, default: 'INR', uppercase: true, trim: true },
     productPrices: { type: [entrySchema], default: [] },
     validFrom: Date,
     validTo: Date,

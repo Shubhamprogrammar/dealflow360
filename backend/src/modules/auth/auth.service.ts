@@ -15,7 +15,7 @@ import { UserModel } from '../users/user.model.js';
 import { userService } from '../users/user.service.js';
 import type { UserView } from '../users/user.types.js';
 import { MAGIC_LINK_TOKEN_BYTES } from './auth.constants.js';
-import type { AuthTokens, CustomerSession, MagicLinkResult, RegisterInput } from './auth.types.js';
+import type { AuthTokens, CustomerSession, MagicLinkResult } from './auth.types.js';
 
 const hashToken = (token: string): string => createHash('sha256').update(token).digest('hex');
 
@@ -23,8 +23,6 @@ const invalidCredentials = (): ApiError =>
   new ApiError(401, 'Invalid email or password', 'INVALID_CREDENTIALS');
 
 export const authService = {
-  register: async (input: RegisterInput): Promise<UserView> => userService.create(input),
-
   login: async (email: string, password: string): Promise<AuthTokens> => {
     const user = await UserModel.findOne({ email }).select('+passwordHash').exec();
     if (!user) throw invalidCredentials();

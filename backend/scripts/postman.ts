@@ -64,11 +64,6 @@ const TESTS: Record<string, string[]> = {
     'const body = pm.response.json();',
     "if (body.data && body.data.accessToken) pm.collectionVariables.set('accessToken', body.data.accessToken);",
   ],
-  'POST /auth/register': [
-    'const body = pm.response.json();',
-    'const id = body.data && (body.data._id || body.data.id);',
-    "if (id) pm.collectionVariables.set('userId', id);",
-  ],
   'POST /users': [
     'const body = pm.response.json();',
     'const id = body.data && (body.data._id || body.data.id);',

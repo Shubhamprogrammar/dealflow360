@@ -1,3 +1,4 @@
+import { auditLogPaths } from './paths/audit-log.paths.js';
 import { authPaths } from './paths/auth.paths.js';
 import { customerPaths } from './paths/customer.paths.js';
 import { discountTierPaths } from './paths/discount-tier.paths.js';
@@ -28,6 +29,7 @@ export const swaggerSpec = {
     { name: 'Subscription Plans', description: 'Billing cycles, proration and cancellation' },
     { name: 'Customers', description: 'Customer records and rep assignment' },
     { name: 'Reports', description: 'Sales, product and approval analytics' },
+    { name: 'Audit Logs', description: 'Recorded create, update and delete activity' },
     { name: 'Health', description: 'Liveness and readiness' },
   ],
   components: {
@@ -133,7 +135,7 @@ export const swaggerSpec = {
         properties: {
           name: { type: 'string', example: 'Gold 2026' },
           customerTier: { type: 'string', enum: ['bronze', 'silver', 'gold'], example: 'gold' },
-          currency: { type: 'string', minLength: 3, maxLength: 3, example: 'USD' },
+          currency: { type: 'string', minLength: 3, maxLength: 3, default: 'INR', example: 'INR' },
           productPrices: {
             type: 'array',
             minItems: 1,
@@ -211,6 +213,28 @@ export const swaggerSpec = {
           product: { type: 'string', description: '24-hex product id' },
           quantity: { type: 'integer', minimum: 0, example: 10 },
           reorderPoint: { type: 'integer', minimum: 0, example: 2 },
+        },
+      },
+      AuditLog: {
+        type: 'object',
+        properties: {
+          entityType: {
+            type: 'string',
+            enum: ['quotation', 'approval', 'order', 'invoice', 'product', 'customer'],
+          },
+          entityId: { type: 'string', description: '24-hex id of the affected record' },
+          action: {
+            type: 'string',
+            enum: ['created', 'updated', 'deleted', 'approved', 'rejected', 'sent'],
+          },
+          performedBy: { $ref: '#/components/schemas/User' },
+          changes: {
+            type: 'object',
+            description: 'The submitted request body, with credential fields redacted.',
+          },
+          reason: { type: 'string' },
+          ipAddress: { type: 'string' },
+          timestamp: { type: 'string', format: 'date-time' },
         },
       },
       ProrationRules: {
@@ -319,6 +343,7 @@ export const swaggerSpec = {
     ...subscriptionPlanPaths,
     ...customerPaths,
     ...reportPaths,
+    ...auditLogPaths,
     ...healthPaths,
   },
 } as const;
