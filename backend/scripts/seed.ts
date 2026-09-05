@@ -7,7 +7,8 @@ const run = async (): Promise<void> => {
   await connectDatabase();
   if (!(await UserModel.findOne({ email: env.SEED_ADMIN_EMAIL }).exec()))
     await UserModel.create({
-      name: 'Administrator',
+      firstName: 'System',
+      lastName: 'Administrator',
       email: env.SEED_ADMIN_EMAIL,
       passwordHash: await argon2.hash(env.SEED_ADMIN_PASSWORD),
       role: 'admin',

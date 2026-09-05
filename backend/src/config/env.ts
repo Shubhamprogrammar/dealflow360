@@ -4,7 +4,7 @@ import { z } from 'zod';
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
-  MONGO_URI: z.string().default('mongodb://localhost:27017/backend_starter'),
+  MONGO_URI: z.string().default('mongodb://localhost:27017/dealflow'),
   REDIS_URL: z.string().default('redis://localhost:6379'),
   JWT_ACCESS_SECRET: z.string().min(32).default('development-access-secret-change-me-32'),
   JWT_REFRESH_SECRET: z.string().min(32).default('development-refresh-secret-change-me'),

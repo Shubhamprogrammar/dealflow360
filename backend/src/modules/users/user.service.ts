@@ -1,19 +1,16 @@
 import argon2 from 'argon2';
 import { ApiError } from '../../utils/api-error.js';
 import { UserModel } from './user.model.js';
+import type { UserDocument } from './user.model.js';
 import type { CreateUserInput, UserView } from './user.types.js';
-const view = (user: {
-  _id: { toString(): string };
-  name: string;
-  email: string;
-  role: UserView['role'];
-  createdAt: Date;
-  updatedAt: Date;
-}): UserView => ({
+const view = (user: UserDocument & { _id: { toString(): string } }): UserView => ({
   id: user._id.toString(),
-  name: user.name,
+  firstName: user.firstName,
+  lastName: user.lastName,
   email: user.email,
   role: user.role,
+  team: user.team,
+  isActive: user.isActive,
   createdAt: user.createdAt,
   updatedAt: user.updatedAt,
 });
