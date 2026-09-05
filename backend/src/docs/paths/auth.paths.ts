@@ -1,27 +1,6 @@
 import type { Paths } from '../openapi.types.js';
 
 export const authPaths = {
-  '/auth/register': {
-    post: {
-      tags: ['Auth'],
-      summary: 'Create an internal user (admin only)',
-      security: [{ bearerAuth: [] }],
-      requestBody: {
-        required: true,
-        content: { 'application/json': { schema: { $ref: '#/components/schemas/UserInput' } } },
-      },
-      responses: {
-        201: { description: 'User created' },
-        400: {
-          description: 'Validation failed',
-          content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
-        },
-        401: { description: 'Not authenticated' },
-        403: { description: 'Caller is not an admin' },
-        409: { description: 'Email already exists' },
-      },
-    },
-  },
   '/auth/login': {
     post: {
       tags: ['Auth'],

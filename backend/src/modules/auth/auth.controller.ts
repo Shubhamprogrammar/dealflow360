@@ -2,10 +2,6 @@ import type { Request, Response } from 'express';
 import { sendSuccess } from '../../utils/api-response.js';
 import { authService } from './auth.service.js';
 
-export const register = async (req: Request, res: Response): Promise<void> => {
-  sendSuccess(res, 201, 'User registered successfully', await authService.register(req.body));
-};
-
 export const login = async (req: Request, res: Response): Promise<void> => {
   const { email, password } = req.body as { email: string; password: string };
   sendSuccess(res, 200, 'Login successful', await authService.login(email, password));

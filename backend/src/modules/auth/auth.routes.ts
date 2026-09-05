@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { asyncHandler } from '../../utils/async-handler.js';
 import { authenticate } from '../../middleware/auth.middleware.js';
-import { authorize } from '../../middleware/role.middleware.js';
 import { validate } from '../../middleware/validate.middleware.js';
 import {
   customerLogin,
@@ -9,7 +8,6 @@ import {
   logout,
   me,
   refresh,
-  register,
   requestMagicLink,
   verifyMagicLink,
 } from './auth.controller.js';
@@ -19,18 +17,10 @@ import {
   magicLinkSchema,
   magicLinkTokenSchema,
   refreshSchema,
-  registerSchema,
 } from './auth.validation.js';
 
 export const authRoutes = Router();
 
-authRoutes.post(
-  '/register',
-  authenticate,
-  authorize('admin'),
-  validate(registerSchema),
-  asyncHandler(register),
-);
 authRoutes.post('/login', validate(loginSchema), asyncHandler(login));
 authRoutes.post('/refresh', validate(refreshSchema), asyncHandler(refresh));
 authRoutes.get('/me', authenticate, asyncHandler(me));

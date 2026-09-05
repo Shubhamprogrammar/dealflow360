@@ -52,11 +52,10 @@ const prefixes = mounts(indexSource);
 
 const routes = new Set<string>();
 for (const [router, prefix] of prefixes) {
+  // `routes.use()` also mounts plain middleware; only names imported from a *.routes file
+  // are routers, so anything else is skipped rather than reported as unresolvable.
   const file = files.get(router);
-  if (!file) {
-    console.error(`Could not resolve the file for router "${router}" in routes/index.ts`);
-    process.exit(1);
-  }
+  if (!file) continue;
   for (const route of registrations(read(file), prefix)) routes.add(route);
 }
 

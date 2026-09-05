@@ -20,52 +20,6 @@
       "description": "Staff and customer authentication",
       "item": [
         {
-          "name": "Create an internal user (admin only)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/auth/register",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "register"
-              ]
-            },
-            "description": "Create an internal user (admin only)",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"firstName\": \"Priya\",\n  \"lastName\": \"Sharma\",\n  \"email\": \"priya@dealflow.com\",\n  \"password\": \"password123\",\n  \"role\": \"admin\",\n  \"team\": \"West\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const body = pm.response.json();",
-                  "const id = body.data && (body.data._id || body.data.id);",
-                  "if (id) pm.collectionVariables.set('userId', id);"
-                ]
-              }
-            }
-          ]
-        },
-        {
           "name": "Staff login",
           "request": {
             "method": "POST",
@@ -781,7 +735,7 @@
             "description": "Create a price list (admin, sales_manager)",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Gold 2026\",\n  \"customerTier\": \"gold\",\n  \"currency\": \"USD\",\n  \"productPrices\": [\n    {\n      \"product\": \"{{productId}}\",\n      \"customPrice\": 1000\n    }\n  ],\n  \"validFrom\": \"2026-01-01T00:00:00.000Z\",\n  \"validTo\": \"2026-12-31T23:59:59.000Z\"\n}",
+              "raw": "{\n  \"name\": \"Gold 2026\",\n  \"customerTier\": \"gold\",\n  \"currency\": \"INR\",\n  \"productPrices\": [\n    {\n      \"product\": \"{{productId}}\",\n      \"customPrice\": 1000\n    }\n  ],\n  \"validFrom\": \"2026-01-01T00:00:00.000Z\",\n  \"validTo\": \"2026-12-31T23:59:59.000Z\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1369,10 +1323,6 @@
       ]
     },
     {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 294094c (A5, A6 and A7)
       "name": "Subscription Plans",
       "description": "Billing cycles, proration and cancellation",
       "item": [
@@ -1969,11 +1919,76 @@
       ]
     },
     {
-<<<<<<< HEAD
-=======
->>>>>>> b335c6b (A3 and A4 implemented)
-=======
->>>>>>> 294094c (A5, A6 and A7)
+      "name": "Audit Logs",
+      "description": "Recorded create, update and delete activity",
+      "item": [
+        {
+          "name": "List audit logs, paginated (admin, finance)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/audit-logs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audit-logs"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "entityType",
+                  "value": "quotation",
+                  "disabled": true
+                },
+                {
+                  "key": "entityId",
+                  "value": "",
+                  "description": "24-hex id of the affected record",
+                  "disabled": true
+                },
+                {
+                  "key": "action",
+                  "value": "created",
+                  "disabled": true
+                },
+                {
+                  "key": "performedBy",
+                  "value": "",
+                  "description": "24-hex user id",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "",
+                  "description": "Inclusive lower bound on timestamp, ISO 8601.",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "description": "Inclusive upper bound on timestamp, ISO 8601.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List audit logs, paginated (admin, finance)\n\nNewest first. Entries are written by middleware on every successful create, update and delete of a quotation, approval, order, invoice, product or customer."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Health",
       "description": "Liveness and readiness",
       "item": [
@@ -2089,10 +2104,6 @@
       "type": "string"
     },
     {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 294094c (A5, A6 and A7)
       "key": "subscriptionPlanId",
       "value": "",
       "type": "string"
@@ -2108,11 +2119,6 @@
       "type": "string"
     },
     {
-<<<<<<< HEAD
-=======
->>>>>>> b335c6b (A3 and A4 implemented)
-=======
->>>>>>> 294094c (A5, A6 and A7)
       "key": "tierName",
       "value": "gold",
       "type": "string"

@@ -21,6 +21,10 @@ import { orderRoutes } from '../modules/orders/order.routes.js';
 
 export const routes = Router();
 
+import { auditLogRoutes } from '../modules/audit-logs/audit-log.routes.js';
+import { audit } from '../middleware/audit.middleware.js';
+// Registered before the feature routers so it can observe every create, update and delete.
+routes.use(audit);
 routes.use(healthRoutes);
 routes.use('/auth', authRoutes);
 routes.use('/users', userRoutes);
@@ -31,6 +35,7 @@ routes.use('/warehouses', warehouseRoutes);
 routes.use('/subscription-plans', subscriptionPlanRoutes);
 routes.use('/customers', customerRoutes);
 routes.use('/reports', reportRoutes);
+routes.use('/audit-logs', auditLogRoutes);
 routes.use('/quotations', quotationRoutes);
 routes.use('/discount-tiers', discountTierRoutes);
 routes.use('/warehouses', warehouseRoutes);
