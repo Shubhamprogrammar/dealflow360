@@ -8,6 +8,7 @@ import {
   env,
   logger,
 } from './config/index.js';
+import { closeMailer } from './config/mailer.js';
 import { createSocketServer } from './socket/socket.js';
 import { closeQueues } from './queues/index.js';
 import { closeWorkers, createWorkers } from './queues/workers/index.js';
@@ -26,6 +27,7 @@ const shutdown = async (signal: string): Promise<void> => {
   server.close();
   await closeWorkers(workers);
   await closeQueues();
+  closeMailer();
   await disconnectRedis();
   await disconnectDatabase();
   process.exit(0);

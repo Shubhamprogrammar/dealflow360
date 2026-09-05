@@ -1,12 +1,14 @@
 import { Worker } from 'bullmq';
 import { logger, redis } from '../../config/index.js';
-import { QUEUE_NAMES } from '../queue.constants.js';
+import { sendMail, type MailMessage } from '../../config/mailer.js';
+import { JOB_NAMES, QUEUE_NAMES } from '../queue.constants.js';
 
 export const createDefaultWorker = (): Worker => {
   const worker = new Worker(
     QUEUE_NAMES.DEFAULT,
     async (job) => {
       logger.info({ jobId: job.id, name: job.name }, 'Processing background job');
+      if (job.name === JOB_NAMES.SEND_EMAIL) await sendMail(job.data as MailMessage);
     },
     { connection: redis },
   );

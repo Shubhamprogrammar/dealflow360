@@ -7,7 +7,11 @@ These instructions apply to every change in this repository. Read them before in
 - This is a reusable Node.js backend starter.
 - The stack is Node.js 20+, Express 5, TypeScript, MongoDB, Mongoose, Redis, BullMQ, Socket.IO, JWT, RBAC, Pino, Zod, and Swagger/OpenAPI.
 - The repository intentionally does not contain testing infrastructure, Husky, lint-staged, Docker, Docker Compose, or GitHub Actions workflows. Do not reintroduce them unless the user explicitly requests them.
-- Do not add project-specific integrations such as AWS, Stripe, email providers, Twilio, Puppeteer, or OpenAI unless explicitly required.
+- Do not add project-specific integrations such as AWS, Stripe, Twilio, Puppeteer, or OpenAI unless explicitly required.
+- Email is an approved integration for this project. Use SMTP via `nodemailer` only; do not add hosted email APIs such as SendGrid, SES, Postmark, or Resend.
+  - Transport configuration lives in `src/config/mailer.ts` and is driven by the `SMTP_*` environment variables.
+  - Services must not call `sendMail` directly in a request path. Enqueue with `enqueueEmail` so delivery is retried by the BullMQ worker.
+  - When `SMTP_HOST` is unset the mailer logs and skips sending, so local development works without a mail server.
 
 ## Before Changes
 
