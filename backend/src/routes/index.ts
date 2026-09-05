@@ -34,3 +34,4 @@ routes.use('/audit-logs', auditLogRoutes);
 routes.use('/quotations', quotationRoutes);
 routes.use('/approvals', approvalRoutes);
 routes.use('/orders', orderRoutes);
+routes.use('/audit-logs', auditLogRoutes);
