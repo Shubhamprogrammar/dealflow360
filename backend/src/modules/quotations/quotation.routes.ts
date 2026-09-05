@@ -28,7 +28,10 @@ import {
 
 export const quotationRoutes = Router();
 
-const canBuild = authorize('admin', 'sales_rep', 'sales_manager');
+// roleaccess.md: only Sales Rep and Sales Manager can create/edit quotations.
+// Finance/Admin are read-only here (scoped further in the service — see
+// quotation.service.ts).
+const canBuild = authorize('sales_rep', 'sales_manager');
 
 quotationRoutes.use(authenticate);
 
