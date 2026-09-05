@@ -1,8 +1,11 @@
 import { authPaths } from './paths/auth.paths.js';
+import { customerPaths } from './paths/customer.paths.js';
 import { discountTierPaths } from './paths/discount-tier.paths.js';
 import { healthPaths } from './paths/health.paths.js';
 import { pricelistPaths } from './paths/pricelist.paths.js';
 import { productPaths } from './paths/product.paths.js';
+import { reportPaths } from './paths/report.paths.js';
+import { subscriptionPlanPaths } from './paths/subscription-plan.paths.js';
 import { userPaths } from './paths/user.paths.js';
 import { warehousePaths } from './paths/warehouse.paths.js';
 
@@ -22,6 +25,9 @@ export const swaggerSpec = {
     { name: 'Price Lists', description: 'Tier-specific pricing' },
     { name: 'Discount Tiers', description: 'Discount limits and approval chain configuration' },
     { name: 'Warehouses', description: 'Warehouse setup and stock levels' },
+    { name: 'Subscription Plans', description: 'Billing cycles, proration and cancellation' },
+    { name: 'Customers', description: 'Customer records and rep assignment' },
+    { name: 'Reports', description: 'Sales, product and approval analytics' },
     { name: 'Health', description: 'Liveness and readiness' },
   ],
   components: {
@@ -207,6 +213,70 @@ export const swaggerSpec = {
           reorderPoint: { type: 'integer', minimum: 0, example: 2 },
         },
       },
+      ProrationRules: {
+        type: 'object',
+        required: ['onUpgrade', 'onDowngrade'],
+        properties: {
+          onUpgrade: { type: 'string', enum: ['immediate', 'next_cycle'], example: 'immediate' },
+          onDowngrade: {
+            type: 'string',
+            enum: ['immediate', 'next_cycle'],
+            example: 'next_cycle',
+          },
+        },
+      },
+      CancellationPolicy: {
+        type: 'object',
+        required: ['refundType', 'effectiveDate'],
+        properties: {
+          refundType: { type: 'string', enum: ['none', 'prorated', 'full'], example: 'prorated' },
+          effectiveDate: {
+            type: 'string',
+            enum: ['immediate', 'end_of_period'],
+            example: 'end_of_period',
+          },
+        },
+      },
+      SubscriptionPlan: {
+        type: 'object',
+        required: ['name', 'billingCycle', 'billingIntervalDays'],
+        properties: {
+          name: { type: 'string', example: 'Monthly Standard' },
+          billingCycle: {
+            type: 'string',
+            enum: ['monthly', 'quarterly', 'yearly'],
+            example: 'monthly',
+          },
+          billingIntervalDays: { type: 'integer', minimum: 1, example: 30 },
+          prorationRules: { $ref: '#/components/schemas/ProrationRules' },
+          cancellationPolicy: { $ref: '#/components/schemas/CancellationPolicy' },
+        },
+      },
+      CustomerInput: {
+        type: 'object',
+        required: ['companyName', 'contactEmail'],
+        properties: {
+          companyName: { type: 'string', example: 'Acme Corp' },
+          contactEmail: { type: 'string', format: 'email', example: 'buyer@acme.com' },
+          contactName: { type: 'string', example: 'Alex Buyer' },
+          customerTier: { type: 'string', enum: ['bronze', 'silver', 'gold'], example: 'bronze' },
+          creditScore: { type: 'number', minimum: 0, maximum: 1000, example: 700 },
+          paymentTerms: { type: 'string', example: 'Net 30' },
+          assignedRep: { type: 'string', description: '24-hex user id of a sales_rep' },
+        },
+      },
+      Customer: {
+        type: 'object',
+        properties: {
+          companyName: { type: 'string' },
+          contactEmail: { type: 'string', format: 'email' },
+          contactName: { type: 'string' },
+          customerTier: { type: 'string', enum: ['bronze', 'silver', 'gold'] },
+          creditScore: { type: 'number' },
+          paymentTerms: { type: 'string' },
+          assignedRep: { $ref: '#/components/schemas/User' },
+        },
+      },
       WarehouseInput: {
         type: 'object',
         required: ['name'],
@@ -246,6 +316,9 @@ export const swaggerSpec = {
     ...pricelistPaths,
     ...discountTierPaths,
     ...warehousePaths,
+    ...subscriptionPlanPaths,
+    ...customerPaths,
+    ...reportPaths,
     ...healthPaths,
   },
 } as const;

@@ -1369,6 +1369,602 @@
       ]
     },
     {
+      "name": "Subscription Plans",
+      "description": "Billing cycles, proration and cancellation",
+      "item": [
+        {
+          "name": "List subscription plans, paginated",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/subscription-plans",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subscription-plans"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "billingCycle",
+                  "value": "monthly",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List subscription plans, paginated"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const first = (pm.response.json().data || [])[0];",
+                  "if (first && first._id) pm.collectionVariables.set('subscriptionPlanId', first._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create a subscription plan (admin, sales_manager)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/subscription-plans",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subscription-plans"
+              ]
+            },
+            "description": "Create a subscription plan (admin, sales_manager)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Monthly Standard\",\n  \"billingCycle\": \"monthly\",\n  \"billingIntervalDays\": 30,\n  \"prorationRules\": {\n    \"onUpgrade\": \"immediate\",\n    \"onDowngrade\": \"next_cycle\"\n  },\n  \"cancellationPolicy\": {\n    \"refundType\": \"prorated\",\n    \"effectiveDate\": \"end_of_period\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const id = body.data && (body.data._id || body.data.id);",
+                  "if (id) pm.collectionVariables.set('subscriptionPlanId', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Partially update a subscription plan (admin, sales_manager)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/subscription-plans/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subscription-plans",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{subscriptionPlanId}}"
+                }
+              ]
+            },
+            "description": "Partially update a subscription plan (admin, sales_manager)\n\nSend only changed fields; at least one is required.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Monthly Standard\",\n  \"billingCycle\": \"monthly\",\n  \"billingIntervalDays\": 30,\n  \"prorationRules\": {\n    \"onUpgrade\": \"immediate\",\n    \"onDowngrade\": \"next_cycle\"\n  },\n  \"cancellationPolicy\": {\n    \"refundType\": \"prorated\",\n    \"effectiveDate\": \"end_of_period\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Replace the proration rules (admin, sales_manager)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/subscription-plans/:id/proration",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subscription-plans",
+                ":id",
+                "proration"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{subscriptionPlanId}}"
+                }
+              ]
+            },
+            "description": "Replace the proration rules (admin, sales_manager)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"onUpgrade\": \"immediate\",\n  \"onDowngrade\": \"next_cycle\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Replace the cancellation policy (admin, sales_manager)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/subscription-plans/:id/cancellation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subscription-plans",
+                ":id",
+                "cancellation"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{subscriptionPlanId}}"
+                }
+              ]
+            },
+            "description": "Replace the cancellation policy (admin, sales_manager)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refundType\": \"prorated\",\n  \"effectiveDate\": \"end_of_period\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Customers",
+      "description": "Customer records and rep assignment",
+      "item": [
+        {
+          "name": "List customers, paginated",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/customers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "customerTier",
+                  "value": "bronze",
+                  "disabled": true
+                },
+                {
+                  "key": "assignedRep",
+                  "value": "",
+                  "description": "24-hex user id",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List customers, paginated"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const first = (pm.response.json().data || [])[0];",
+                  "if (first && first._id) pm.collectionVariables.set('customerId', first._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create a customer (admin, sales_manager, sales_rep)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/customers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers"
+              ]
+            },
+            "description": "Create a customer (admin, sales_manager, sales_rep)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyName\": \"Acme Corp\",\n  \"contactEmail\": \"buyer@acme.com\",\n  \"contactName\": \"Alex Buyer\",\n  \"customerTier\": \"bronze\",\n  \"creditScore\": 700,\n  \"paymentTerms\": \"Net 30\",\n  \"assignedRep\": \"{{salesRepId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const id = body.data && (body.data._id || body.data.id);",
+                  "if (id) pm.collectionVariables.set('customerId', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fetch one customer",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/customers/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{customerId}}"
+                }
+              ]
+            },
+            "description": "Fetch one customer\n\nPortal credentials and magic-link fields are never returned."
+          },
+          "response": []
+        },
+        {
+          "name": "Partially update a customer (admin, sales_manager, sales_rep)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/customers/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{customerId}}"
+                }
+              ]
+            },
+            "description": "Partially update a customer (admin, sales_manager, sales_rep)\n\nSend only changed fields; at least one is required.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyName\": \"Acme Corp\",\n  \"contactEmail\": \"buyer@acme.com\",\n  \"contactName\": \"Alex Buyer\",\n  \"customerTier\": \"bronze\",\n  \"creditScore\": 700,\n  \"paymentTerms\": \"Net 30\",\n  \"assignedRep\": \"{{salesRepId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Assign a sales rep to a customer (admin, sales_manager)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/customers/:id/assign-rep",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers",
+                ":id",
+                "assign-rep"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{customerId}}"
+                }
+              ]
+            },
+            "description": "Assign a sales rep to a customer (admin, sales_manager)\n\nThe target user must be an active sales_rep.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assignedRep\": \"{{salesRepId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "description": "Sales, product and approval analytics",
+      "item": [
+        {
+          "name": "Sales summary (admin, sales_manager, finance)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/sales",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "sales"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "",
+                  "description": "Inclusive lower bound on createdAt, ISO 8601.",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "description": "Inclusive upper bound on createdAt, ISO 8601.",
+                  "disabled": true
+                },
+                {
+                  "key": "rep",
+                  "value": "",
+                  "description": "24-hex user id",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "draft",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Sales summary (admin, sales_manager, finance)\n\nQuotation totals and a per-status breakdown for the period. Order totals are narrowed by the period only, since orders carry no rep or quotation status."
+          },
+          "response": []
+        },
+        {
+          "name": "Product performance (admin, sales_manager, finance)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "",
+                  "description": "Inclusive lower bound on createdAt, ISO 8601.",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "description": "Inclusive upper bound on createdAt, ISO 8601.",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Product performance (admin, sales_manager, finance)\n\nUnits and revenue per product, measured on orders rather than quotations, so unconverted quotes are excluded. Sorted by revenue descending."
+          },
+          "response": []
+        },
+        {
+          "name": "Approval metrics (admin, sales_manager, finance)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/approvals",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "approvals"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "",
+                  "description": "Inclusive lower bound on createdAt, ISO 8601.",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "description": "Inclusive upper bound on createdAt, ISO 8601.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Approval metrics (admin, sales_manager, finance)"
+          },
+          "response": []
+        },
+        {
+          "name": "Export the sales report as CSV (admin, sales_manager, finance)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/export",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "export"
+              ],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "csv",
+                  "description": "Only csv is supported.",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "",
+                  "description": "Inclusive lower bound on createdAt, ISO 8601.",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "description": "Inclusive upper bound on createdAt, ISO 8601.",
+                  "disabled": true
+                },
+                {
+                  "key": "rep",
+                  "value": "",
+                  "description": "24-hex user id",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "draft",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Export the sales report as CSV (admin, sales_manager, finance)\n\nReturns one row per quotation matching the same filters as /reports/sales, as a text/csv attachment rather than the usual JSON envelope."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Health",
       "description": "Liveness and readiness",
       "item": [
@@ -1480,6 +2076,21 @@
     },
     {
       "key": "toWarehouseId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "subscriptionPlanId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "customerId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "salesRepId",
       "value": "",
       "type": "string"
     },
