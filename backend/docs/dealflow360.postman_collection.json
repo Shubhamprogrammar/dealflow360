@@ -1370,6 +1370,9 @@
     },
     {
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 294094c (A5, A6 and A7)
       "name": "Subscription Plans",
       "description": "Billing cycles, proration and cancellation",
       "item": [
@@ -1966,8 +1969,11 @@
       ]
     },
     {
+<<<<<<< HEAD
 =======
 >>>>>>> b335c6b (A3 and A4 implemented)
+=======
+>>>>>>> 294094c (A5, A6 and A7)
       "name": "Health",
       "description": "Liveness and readiness",
       "item": [
@@ -2084,6 +2090,9 @@
     },
     {
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 294094c (A5, A6 and A7)
       "key": "subscriptionPlanId",
       "value": "",
       "type": "string"
@@ -2099,8 +2108,11 @@
       "type": "string"
     },
     {
+<<<<<<< HEAD
 =======
 >>>>>>> b335c6b (A3 and A4 implemented)
+=======
+>>>>>>> 294094c (A5, A6 and A7)
       "key": "tierName",
       "value": "gold",
       "type": "string"
