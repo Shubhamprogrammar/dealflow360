@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { sendSuccess } from '../../utils/api-response.js';
 import { quotationService } from './quotation.service.js';
+import { approvalService } from '../approvals/approval.service.js';
 import type { ListQuotationsQuery } from './quotation.types.js';
 
 export const createQuotation = async (req: Request, res: Response): Promise<void> => {
@@ -62,4 +63,12 @@ export const removeLineItem = async (req: Request, res: Response): Promise<void>
 export const calculateRisk = async (req: Request, res: Response): Promise<void> => {
   const quotation = await quotationService.calculateRisk(req.params.id as string, req.user!);
   sendSuccess(res, 200, 'Risk score calculated successfully', quotation);
+};
+
+export const submitApproval = async (req: Request, res: Response): Promise<void> => {
+  const result = await approvalService.submitForApproval(req.params.id as string, req.user!);
+  const message = result.approval
+    ? 'Quotation submitted for approval'
+    : 'Quotation auto-approved, no policy violations found';
+  sendSuccess(res, 200, message, result);
 };

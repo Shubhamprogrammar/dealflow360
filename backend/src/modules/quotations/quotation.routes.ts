@@ -11,6 +11,7 @@ import {
   getQuotation,
   listQuotations,
   removeLineItem,
+  submitApproval,
   updateLineItem,
   updateQuotation,
 } from './quotation.controller.js';
@@ -71,4 +72,10 @@ quotationRoutes.post(
   canBuild,
   validate(quotationIdSchema),
   asyncHandler(calculateRisk),
+);
+quotationRoutes.post(
+  '/:id/submit-approval',
+  canBuild,
+  validate(quotationIdSchema),
+  asyncHandler(submitApproval),
 );

@@ -10,6 +10,7 @@ import { subscriptionPlanRoutes } from '../modules/subscription-plans/subscripti
 import { customerRoutes } from '../modules/customers/customer.routes.js';
 import { reportRoutes } from '../modules/reports/report.routes.js';
 import { quotationRoutes } from '../modules/quotations/quotation.routes.js';
+import { approvalRoutes } from '../modules/approvals/approval.routes.js';
 export const routes = Router();
 routes.use(healthRoutes);
 routes.use('/auth', authRoutes);
@@ -27,3 +28,4 @@ routes.use('/warehouses', warehouseRoutes);
 routes.use('/subscription-plans', subscriptionPlanRoutes);
 routes.use('/customers', customerRoutes);
 routes.use('/reports', reportRoutes);
+routes.use('/approvals', approvalRoutes);
