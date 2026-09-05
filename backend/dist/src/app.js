@@ -1,0 +1,24 @@
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import { pinoHttp } from 'pino-http';
+import swaggerUi from 'swagger-ui-express';
+import { env, logger } from './config/index.js';
+import { apiRateLimit } from './middleware/rate-limit.middleware.js';
+import { requestId } from './middleware/request-id.middleware.js';
+import { notFound } from './middleware/not-found.middleware.js';
+import { errorHandler } from './middleware/error.middleware.js';
+import { routes } from './routes/index.js';
+import { swaggerSpec } from './docs/swagger.js';
+export const app = express();
+app.use(helmet());
+app.use(cors({ origin: env.CORS_ORIGIN }));
+app.use(express.json({ limit: '1mb' }));
+app.use(requestId);
+app.use(pinoHttp({ logger }));
+app.use(apiRateLimit);
+app.use('/api/v1', routes);
+if (env.SWAGGER_ENABLED)
+    app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use(notFound);
+app.use(errorHandler);
