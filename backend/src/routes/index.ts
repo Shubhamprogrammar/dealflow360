@@ -7,8 +7,6 @@ import { pricelistRoutes } from '../modules/pricelists/pricelist.routes.js';
 import { discountTierRoutes } from '../modules/discount-tiers/discount-tier.routes.js';
 import { warehouseRoutes } from '../modules/warehouses/warehouse.routes.js';
 import { quotationRoutes } from '../modules/quotations/quotation.routes.js';
-import { discountTierRoutes } from '../modules/discount-tiers/discount-tier.routes.js';
-import { warehouseRoutes } from '../modules/warehouses/warehouse.routes.js';
 export const routes = Router();
 routes.use(healthRoutes);
 routes.use('/auth', authRoutes);
