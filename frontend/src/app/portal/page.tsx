@@ -133,7 +133,7 @@ export default function CustomerPortalPage() {
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <Button variant="secondary" onClick={() => setActiveId(null)}>
+        <Button variant="outline" onClick={() => setActiveId(null)}>
           &larr; Back to Board
         </Button>
       </div>

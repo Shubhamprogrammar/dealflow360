@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
-import type { Types } from 'mongoose';
 import argon2 from 'argon2';
 import { env } from '../../config/env.js';
+import { logger } from '../../config/logger.js';
 import { enqueueEmail } from '../../jobs/jobs.js';
 import { ApiError } from '../../utils/api-error.js';
 import {
@@ -16,12 +16,44 @@ import { UserModel } from '../users/user.model.js';
 import { userService } from '../users/user.service.js';
 import type { UserView } from '../users/user.types.js';
 import { MAGIC_LINK_TOKEN_BYTES } from './auth.constants.js';
-import type { AuthTokens, CustomerSession, MagicLinkResult } from './auth.types.js';
+import { buildMagicLinkEmail } from './magic-link-email.js';
+import { MagicLinkTokenModel } from './magic-link-token.model.js';
+import type { AuthTokens, CustomerSession } from './auth.types.js';
 
 const hashToken = (token: string): string => createHash('sha256').update(token).digest('hex');
 
 const invalidCredentials = (): ApiError =>
   new ApiError(401, 'Invalid email or password', 'INVALID_CREDENTIALS');
+
+// Portal home the verified customer lands on. Kept here so both the API
+// response and any future caller agree on one target.
+const PORTAL_REDIRECT = '/portal';
+
+/**
+ * Mint a fresh single-use magic-link token for a customer and email the link.
+ * The only place customer magic links are created -- self-serve "request link"
+ * calls this, and any future system trigger (e.g. quotation sent to customer)
+ * can call it too rather than re-implementing token generation.
+ */
+export const issueMagicLink = async (customerId: string, contactEmail: string, companyName: string): Promise<void> => {
+  const rawToken = randomBytes(MAGIC_LINK_TOKEN_BYTES).toString('hex');
+  const ttlMinutes = env.MAGIC_LINK_TTL_MINUTES;
+
+  await MagicLinkTokenModel.create({
+    customer: customerId,
+    token: hashToken(rawToken),
+    expiresAt: new Date(Date.now() + ttlMinutes * 60_000),
+    used: false,
+  });
+
+  const link = `${env.PORTAL_BASE_URL}/verify?token=${rawToken}`;
+
+  // Dev convenience: the link is always in the server logs so the flow can be
+  // tested without opening the mailbox.
+  logger.info({ to: contactEmail, link }, 'Magic link issued');
+
+  await enqueueEmail(buildMagicLinkEmail({ to: contactEmail, companyName, link, ttlMinutes }));
+};
 
 export const authService = {
   login: async (email: string, password: string): Promise<AuthTokens> => {
@@ -50,72 +82,35 @@ export const authService = {
 
   me: async (userId: string): Promise<UserView> => userService.getById(userId),
 
-  requestMagicLink: async (contactEmail: string): Promise<MagicLinkResult> => {
-    const expiresAt = new Date(Date.now() + env.MAGIC_LINK_TTL_MINUTES * 60_000);
-    const customer = await CustomerModel.findOne({ contactEmail }).exec();
-    if (customer) {
-      const token = randomBytes(MAGIC_LINK_TOKEN_BYTES).toString('hex');
-      customer.magicLinkToken = hashToken(token);
-      customer.magicLinkExpiry = expiresAt;
-      await customer.save();
-      await enqueueEmail({
-        to: customer.contactEmail,
-        subject: 'Your DealFlow360 portal link',
-        text: `Open your quotation portal: ${env.PORTAL_BASE_URL}/verify/${token}\n\nThis link expires in ${String(env.MAGIC_LINK_TTL_MINUTES)} minutes.`,
-      });
-    }
-    return { expiresAt };
+  // Self-serve: customer asks for a sign-in link. The response is identical
+  // whether or not the email matched a customer, so it can't be used to probe
+  // which emails are registered.
+  requestMagicLink: async (email: string): Promise<void> => {
+    const customer = await CustomerModel.findOne({ contactEmail: email.toLowerCase() }).exec();
+    if (!customer) return;
+    await issueMagicLink(customer._id.toString(), customer.contactEmail, customer.companyName);
   },
 
-  verifyMagicLink: async (token: string): Promise<CustomerSession> => {
-    const customer = await CustomerModel.findOne({ magicLinkToken: hashToken(token) })
-      .select('+magicLinkToken +magicLinkExpiry')
-      .exec();
-    if (!customer?.magicLinkExpiry || customer.magicLinkExpiry.getTime() < Date.now())
-      throw new ApiError(401, 'Magic link is invalid or expired', 'INVALID_MAGIC_LINK');
-    customer.magicLinkToken = undefined;
-    customer.magicLinkExpiry = undefined;
-    await customer.save();
+  verifyMagicLink: async (rawToken: string): Promise<CustomerSession & { redirect: string }> => {
+    const record = await MagicLinkTokenModel.findOne({ token: hashToken(rawToken) }).exec();
+    const linkInvalid = new ApiError(
+      401,
+      'This link is invalid or has expired.',
+      'INVALID_MAGIC_LINK',
+    );
+    if (!record || record.used || record.expiresAt.getTime() < Date.now()) throw linkInvalid;
+
+    record.used = true;
+    await record.save();
+
+    const customer = await CustomerModel.findById(record.customer).exec();
+    if (!customer) throw linkInvalid;
+
     return {
       accessToken: signCustomerAccessToken(customer._id.toString()),
       customerId: customer._id.toString(),
       companyName: customer.companyName,
-    };
-  },
-
-  customerLogin: async (contactEmail: string, password: string): Promise<CustomerSession> => {
-    const customer = await CustomerModel.findOne({ contactEmail })
-      .select('+portalPasswordHash')
-      .exec();
-    if (!customer?.portalPasswordHash) throw invalidCredentials();
-    if (!(await argon2.verify(customer.portalPasswordHash, password))) throw invalidCredentials();
-    return {
-      accessToken: signCustomerAccessToken(customer._id.toString()),
-      customerId: customer._id.toString(),
-      companyName: customer.companyName,
-    };
-  },
-
-  registerCustomer: async (
-    companyName: string,
-    contactEmail: string,
-    password: string,
-  ): Promise<CustomerSession> => {
-    const existing = await CustomerModel.findOne({ contactEmail: contactEmail.toLowerCase() }).exec();
-    if (existing) throw new ApiError(409, 'A customer with this email already exists', 'CUSTOMER_EXISTS');
-
-    const portalPasswordHash = await argon2.hash(password);
-    const customer = await CustomerModel.create({
-      companyName,
-      contactEmail: contactEmail.toLowerCase(),
-      portalPasswordHash,
-      customerTier: 'bronze',
-    });
-
-    return {
-      accessToken: signCustomerAccessToken((customer._id as Types.ObjectId).toString()),
-      customerId: (customer._id as Types.ObjectId).toString(),
-      companyName: customer.companyName,
+      redirect: PORTAL_REDIRECT,
     };
   },
 };

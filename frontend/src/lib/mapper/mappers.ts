@@ -17,6 +17,11 @@ import type {
   DiscountConfig,
   TierCeiling,
   CategoryCeiling,
+  Inquiry,
+  InquiryItem,
+  InquiryStatus,
+  Catalog,
+  CatalogProduct,
 } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -188,6 +193,93 @@ function mapAuditEntry(a: any): AuditEntry {
     action: a.action ?? '',
     date: a.createdAt ?? a.date ?? '',
     note: a.note ?? a.changes ?? undefined,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Inquiry mapping  (customer inquiry → rep quotation flow)
+// ---------------------------------------------------------------------------
+const INQUIRY_STATUS_MAP: Record<string, InquiryStatus> = {
+  new: 'New',
+  in_review: 'InReview',
+  converted: 'Converted',
+  dismissed: 'Dismissed',
+};
+
+export function mapInquiryStatus(s: string): InquiryStatus {
+  return INQUIRY_STATUS_MAP[s] ?? 'New';
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function mapInquiryItem(i: any): InquiryItem {
+  return {
+    id: i.id ?? i._id ?? '',
+    productId: i.product ?? i.productId ?? '',
+    productName: i.productName ?? 'Unknown',
+    category: mapCategory(i.productCategory ?? i.category ?? ''),
+    variantId: i.variantId,
+    quantity: i.quantity ?? i.qty ?? 0,
+    unitPrice: i.unitPriceSnapshot ?? i.unitPrice ?? 0,
+    note: i.note,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function mapInquiry(q: any): Inquiry {
+  return {
+    id: q.id ?? q._id ?? '',
+    customerId: q.customer ?? q.customerId ?? '',
+    customerName: q.customerName ?? 'Unknown',
+    tier: mapTier(q.customerTier ?? q.tier ?? 'bronze'),
+    items: (q.items ?? []).map(mapInquiryItem),
+    note: q.note,
+    status: mapInquiryStatus(q.status ?? 'new'),
+    convertedQuotationId: q.convertedQuotation ?? q.convertedQuotationId,
+    createdAt: q.createdAt ?? '',
+    updatedAt: q.updatedAt ?? '',
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Portal catalog mapping
+// ---------------------------------------------------------------------------
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function mapCatalogProduct(p: any): CatalogProduct {
+  return {
+    id: p.id ?? p._id ?? '',
+    name: p.name,
+    category: mapCategory(p.category ?? ''),
+    unit: p.unit ?? 'Each',
+    basePrice: p.basePrice ?? 0,
+    isSubscription: p.isSubscription ?? false,
+    variants: (p.variants ?? []).map(
+      (v: {
+        id?: string;
+        _id?: string;
+        attributeName?: string;
+        attribute?: string;
+        attributeValue?: string;
+        value?: string;
+        priceAdjustment?: number;
+        extraPrice?: number;
+      }) => ({
+        id: v.id ?? v._id ?? '',
+        attribute: v.attributeName ?? v.attribute ?? '',
+        value: v.attributeValue ?? v.value ?? '',
+        extraPrice: v.priceAdjustment ?? v.extraPrice ?? 0,
+      }),
+    ),
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function mapCatalog(c: any): Catalog {
+  return {
+    customerTier: mapTier(c.customerTier ?? 'bronze'),
+    groups: (c.groups ?? []).map((g: { category?: string; products?: unknown[] }) => ({
+      category: mapCategory(g.category ?? ''),
+      products: (g.products ?? []).map(mapCatalogProduct),
+    })),
   };
 }
 

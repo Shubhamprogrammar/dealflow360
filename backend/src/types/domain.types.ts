@@ -74,6 +74,7 @@ export const AUDIT_ENTITY_TYPES = [
   'invoice',
   'product',
   'customer',
+  'inquiry',
 ] as const;
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];
 
@@ -89,3 +90,6 @@ export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
 export const NEGOTIATION_ACTORS = ['rep', 'customer'] as const;
 export type NegotiationActor = (typeof NEGOTIATION_ACTORS)[number];
+
+export const INQUIRY_STATUSES = ['new', 'in_review', 'converted', 'dismissed'] as const;
+export type InquiryStatus = (typeof INQUIRY_STATUSES)[number];

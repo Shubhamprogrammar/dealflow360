@@ -182,3 +182,52 @@ export interface AuthTokens {
   accessToken: string;
   refreshToken?: string;
 }
+
+// ---------------------------------------------------------------------------
+// Customer inquiry → rep quotation flow
+// ---------------------------------------------------------------------------
+export type InquiryStatus = 'New' | 'InReview' | 'Converted' | 'Dismissed';
+
+export interface InquiryItem {
+  id: string;
+  productId: string;
+  productName: string;
+  category: Product['category'];
+  variantId?: string;
+  quantity: number;
+  unitPrice: number;
+  note?: string;
+}
+
+export interface Inquiry {
+  id: string;
+  customerId: string;
+  customerName: string;
+  tier: Tier;
+  items: InquiryItem[];
+  note?: string;
+  status: InquiryStatus;
+  convertedQuotationId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CatalogProduct {
+  id: string;
+  name: string;
+  category: Product['category'];
+  unit: string;
+  basePrice: number;
+  isSubscription: boolean;
+  variants: { id: string; attribute: string; value: string; extraPrice: number }[];
+}
+
+export interface CatalogGroup {
+  category: Product['category'];
+  products: CatalogProduct[];
+}
+
+export interface Catalog {
+  customerTier: Tier;
+  groups: CatalogGroup[];
+}

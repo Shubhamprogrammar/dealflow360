@@ -7,6 +7,7 @@ import {
   addLineItem,
   calculateRisk,
   createQuotation,
+  createQuotationFromInquiry,
   deleteQuotation,
   getQuotation,
   getUpsellSuggestions,
@@ -20,6 +21,7 @@ import {
 import {
   addLineItemSchema,
   createQuotationSchema,
+  fromInquirySchema,
   lineItemIdSchema,
   listQuotationsSchema,
   quotationIdSchema,
@@ -38,6 +40,13 @@ const canBuild = authorize('sales_rep', 'sales_manager');
 quotationRoutes.use(authenticate);
 
 quotationRoutes.post('/', canBuild, validate(createQuotationSchema), asyncHandler(createQuotation));
+// Literal segment -- declared before `/:id` routes so it is never read as an id.
+quotationRoutes.post(
+  '/from-inquiry/:inquiryId',
+  canBuild,
+  validate(fromInquirySchema),
+  asyncHandler(createQuotationFromInquiry),
+);
 quotationRoutes.get('/', validate(listQuotationsSchema), asyncHandler(listQuotations));
 quotationRoutes.get('/:id', validate(quotationIdSchema), asyncHandler(getQuotation));
 quotationRoutes.put(

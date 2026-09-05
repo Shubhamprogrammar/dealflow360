@@ -14,6 +14,7 @@ const ENTITY_BY_SEGMENT: Record<string, AuditEntityType> = {
   orders: 'order',
   invoices: 'invoice',
   approvals: 'approval',
+  inquiries: 'inquiry',
 };
 
 const ACTION_BY_METHOD: Record<string, AuditAction> = {

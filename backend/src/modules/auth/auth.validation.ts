@@ -17,18 +17,7 @@ export const magicLinkSchema = z.object({
   body: z.object({ email: z.string().email() }),
 });
 
-export const magicLinkTokenSchema = z.object({
+export const magicLinkVerifySchema = z.object({
   ...empty,
-  params: z.object({ token: z.string().min(1) }),
-});
-
-export const customerLoginSchema = loginSchema;
-
-export const customerRegisterSchema = z.object({
-  ...empty,
-  body: z.object({
-    companyName: z.string().min(2),
-    email: z.string().email(),
-    password: z.string().min(8),
-  }),
+  query: z.object({ token: z.string().min(1) }),
 });

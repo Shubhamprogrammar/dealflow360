@@ -11,6 +11,7 @@ import { subscriptionPlanRoutes } from '../modules/subscription-plans/subscripti
 import { customerRoutes } from '../modules/customers/customer.routes.js';
 import { reportRoutes } from '../modules/reports/report.routes.js';
 import { quotationRoutes } from '../modules/quotations/quotation.routes.js';
+import { inquiryRoutes } from '../modules/inquiries/inquiry.routes.js';
 import { approvalRoutes } from '../modules/approvals/approval.routes.js';
 import { orderRoutes } from '../modules/orders/order.routes.js';
 import { auditLogRoutes } from '../modules/audit-logs/audit-log.routes.js';
@@ -36,6 +37,7 @@ routes.use('/customers', customerRoutes);
 routes.use('/reports', reportRoutes);
 routes.use('/audit-logs', auditLogRoutes);
 routes.use('/quotations', quotationRoutes);
+routes.use('/inquiries', inquiryRoutes);
 routes.use('/approvals', approvalRoutes);
 routes.use('/orders', orderRoutes);
 routes.use('/dashboard', dashboardRoutes);

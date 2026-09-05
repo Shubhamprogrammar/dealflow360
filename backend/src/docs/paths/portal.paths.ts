@@ -26,7 +26,7 @@ export const portalPaths = {
       tags: ['Portal'],
       summary: "Customer: view one of the customer's own quotations",
       description:
-        'Requires a customer bearer token (from the magic-link or portal-login flow), not a ' +
+        'Requires a customer bearer token (from the magic-link flow), not a ' +
         'staff token. Only visible once the quotation has cleared internal approval. The ' +
         'response omits margin, risk score, and approval fields entirely.',
       security: [{ bearerAuth: [] }],
