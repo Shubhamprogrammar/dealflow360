@@ -64,6 +64,7 @@ const view = (quotation: QuotationDocument & { _id: Types.ObjectId }): Quotation
 });
 
 const PRIVILEGED_ROLES: Role[] = ['admin', 'sales_manager'];
+
 const findOwned = async (
   id: string,
   requester: Requester,
@@ -173,6 +174,7 @@ const calculateBlendedRisk = async (
 
   return { score, level, violations };
 };
+
 export const quotationService = {
   create: async (input: CreateQuotationInput, requester: Requester): Promise<QuotationView> => {
     const customer = await CustomerModel.findById(input.customer).exec();
@@ -336,6 +338,7 @@ export const quotationService = {
     await quotation.save();
     return view(quotation);
   },
+
   calculateRisk: async (id: string, requester: Requester): Promise<QuotationView> => {
     const quotation = await findOwned(id, requester);
     assertDraft(quotation);
