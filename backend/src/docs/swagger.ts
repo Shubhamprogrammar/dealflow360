@@ -1,10 +1,13 @@
 import { auditLogPaths } from './paths/audit-log.paths.js';
+import { approvalPaths } from './paths/approval.paths.js';
 import { authPaths } from './paths/auth.paths.js';
 import { customerPaths } from './paths/customer.paths.js';
 import { discountTierPaths } from './paths/discount-tier.paths.js';
 import { healthPaths } from './paths/health.paths.js';
 import { pricelistPaths } from './paths/pricelist.paths.js';
 import { productPaths } from './paths/product.paths.js';
+import { orderPaths } from './paths/order.paths.js';
+import { quotationPaths } from './paths/quotation.paths.js';
 import { reportPaths } from './paths/report.paths.js';
 import { subscriptionPlanPaths } from './paths/subscription-plan.paths.js';
 import { userPaths } from './paths/user.paths.js';
@@ -30,6 +33,9 @@ export const swaggerSpec = {
     { name: 'Customers', description: 'Customer records and rep assignment' },
     { name: 'Reports', description: 'Sales, product and approval analytics' },
     { name: 'Audit Logs', description: 'Recorded create, update and delete activity' },
+    { name: 'Quotations', description: 'Quotation building, risk scoring, and submission' },
+    { name: 'Approvals', description: 'Approval queue and approval decisions' },
+    { name: 'Orders', description: 'Order fulfillment allocation' },
     { name: 'Health', description: 'Liveness and readiness' },
   ],
   components: {
@@ -344,6 +350,9 @@ export const swaggerSpec = {
     ...customerPaths,
     ...reportPaths,
     ...auditLogPaths,
+    ...quotationPaths,
+    ...approvalPaths,
+    ...orderPaths,
     ...healthPaths,
   },
 } as const;

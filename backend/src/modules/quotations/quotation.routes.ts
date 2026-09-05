@@ -62,7 +62,6 @@ quotationRoutes.put(
 quotationRoutes.delete(
   '/:id/line-items/:itemId',
   canBuild,
-  canBuild,
   validate(lineItemIdSchema),
   asyncHandler(removeLineItem),
 );
