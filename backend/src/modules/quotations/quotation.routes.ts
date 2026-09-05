@@ -9,6 +9,7 @@ import {
   createQuotation,
   deleteQuotation,
   getQuotation,
+  getUpsellSuggestions,
   listQuotations,
   removeLineItem,
   submitApproval,
@@ -76,4 +77,9 @@ quotationRoutes.post(
   canBuild,
   validate(quotationIdSchema),
   asyncHandler(submitApproval),
+);
+quotationRoutes.get(
+  '/:id/upsell-suggestions',
+  validate(quotationIdSchema),
+  asyncHandler(getUpsellSuggestions),
 );
