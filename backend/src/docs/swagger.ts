@@ -10,6 +10,7 @@ import { orderPaths } from './paths/order.paths.js';
 import { quotationPaths } from './paths/quotation.paths.js';
 import { reportPaths } from './paths/report.paths.js';
 import { subscriptionPlanPaths } from './paths/subscription-plan.paths.js';
+import { subscriptionPaths } from './paths/subscription.paths.js';
 import { userPaths } from './paths/user.paths.js';
 import { warehousePaths } from './paths/warehouse.paths.js';
 
@@ -36,6 +37,10 @@ export const swaggerSpec = {
     { name: 'Quotations', description: 'Quotation building, risk scoring, and submission' },
     { name: 'Approvals', description: 'Approval queue and approval decisions' },
     { name: 'Orders', description: 'Order fulfillment allocation' },
+    {
+      name: 'Subscriptions',
+      description: 'Subscription lifecycle, proration and recurring billing',
+    },
     { name: 'Health', description: 'Liveness and readiness' },
   ],
   components: {
@@ -353,6 +358,7 @@ export const swaggerSpec = {
     ...quotationPaths,
     ...approvalPaths,
     ...orderPaths,
+    ...subscriptionPaths,
     ...healthPaths,
   },
 } as const;
