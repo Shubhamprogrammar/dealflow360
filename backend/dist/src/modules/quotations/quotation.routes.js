@@ -15,7 +15,7 @@ quotationRoutes.put('/:id', canBuild, validate(updateQuotationSchema), asyncHand
 quotationRoutes.delete('/:id', canBuild, validate(quotationIdSchema), asyncHandler(deleteQuotation));
 quotationRoutes.post('/:id/line-items', canBuild, validate(addLineItemSchema), asyncHandler(addLineItem));
 quotationRoutes.put('/:id/line-items/:itemId', canBuild, validate(updateLineItemSchema), asyncHandler(updateLineItem));
-quotationRoutes.delete('/:id/line-items/:itemId', canBuild, canBuild, validate(lineItemIdSchema), asyncHandler(removeLineItem));
+quotationRoutes.delete('/:id/line-items/:itemId', canBuild, validate(lineItemIdSchema), asyncHandler(removeLineItem));
 quotationRoutes.post('/:id/calculate-risk', canBuild, validate(quotationIdSchema), asyncHandler(calculateRisk));
 quotationRoutes.post('/:id/submit-approval', canBuild, validate(quotationIdSchema), asyncHandler(submitApproval));
 quotationRoutes.get('/:id/upsell-suggestions', validate(quotationIdSchema), asyncHandler(getUpsellSuggestions));
