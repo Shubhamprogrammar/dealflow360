@@ -62,6 +62,10 @@ Client -> Route -> Middleware -> Validation -> Controller -> Service -> Mongoose
 - Success responses use `{ success: true, message, data }`.
 - Paginated responses add a `pagination` object containing `page`, `limit`, `total`, and `totalPages`.
 - Error responses use `{ success: false, message, error: { code } }`.
+- Every route must carry an `@openapi` JSDoc block in its `*.routes.ts` file, added in the same change as the route itself. A route that does not appear at `/docs` is not finished.
+  - Document the request body, path/query parameters, and every status code the handler can return, including 403 and 422.
+  - Reuse the shared schemas in `src/docs/swagger.ts` (`Error`, `Pagination`, `User`, `Product`, `PriceList`, ...) via `$ref` rather than redefining shapes inline; add a new shared schema when a shape is used by more than one route.
+  - `swagger-jsdoc` scans `src/modules/**/*.routes.ts` and `src/routes/*.ts`, resolved relative to `src/docs/swagger.ts` so the globs work under both `tsx` and the compiled `dist` build.
 - Do not expose stack traces, database internals, secrets, passwords, JWTs, refresh tokens, or sensitive implementation details.
 
 ## Authentication and Authorization

@@ -1,0 +1,936 @@
+{
+  "info": {
+    "name": "DealFlow360 API v1.0.0",
+    "description": "Quote-to-cash backend. Staff routes use bearer auth; customer portal routes issue a separate token type that staff routes reject.\n\nGenerated from the OpenAPI spec by `npm run postman` — edit the route JSDoc, not this file.\n\nRun \"Staff login\" first: it stores accessToken, which every secured request sends automatically. Ids captured from create and list responses (productId, priceListId, userId, variantId) feed the path variables of later requests.\n\nAll responses are wrapped as { success, message, data, pagination? }.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Staff and customer authentication",
+      "item": [
+        {
+          "name": "Create an internal user (admin only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Create an internal user (admin only)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Priya\",\n  \"lastName\": \"Sharma\",\n  \"email\": \"priya@dealflow.com\",\n  \"password\": \"password123\",\n  \"role\": \"admin\",\n  \"team\": \"West\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const id = body.data && (body.data._id || body.data.id);",
+                  "if (id) pm.collectionVariables.set('userId', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Staff login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Staff login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@dealflow.com\",\n  \"password\": \"dealflow\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data.accessToken) {",
+                  "  pm.collectionVariables.set('accessToken', body.data.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', body.data.refreshToken || '');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Exchange a refresh token for a new access token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "Exchange a refresh token for a new access token",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data.accessToken) pm.collectionVariables.set('accessToken', body.data.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "The currently signed-in staff user",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "The currently signed-in staff user"
+          },
+          "response": []
+        },
+        {
+          "name": "Client-side logout (tokens are stateless and are not revoked)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Client-side logout (tokens are stateless and are not revoked)",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Email a customer a one-time portal link",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/customer/magic-link",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "customer",
+                "magic-link"
+              ]
+            },
+            "description": "Email a customer a one-time portal link\n\nAlways returns 202, including for unknown emails, so the endpoint cannot be used to enumerate customers.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"buyer@acme.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Redeem a magic-link token for a customer session",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/customer/verify/:token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "customer",
+                "verify",
+                ":token"
+              ],
+              "variable": [
+                {
+                  "key": "token",
+                  "value": "{{magicLinkToken}}"
+                }
+              ]
+            },
+            "description": "Redeem a magic-link token for a customer session\n\nSingle use. The stored token is cleared on success, so replaying it returns 401.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data.accessToken) pm.collectionVariables.set('customerToken', body.data.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Customer portal password login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/customer/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "customer",
+                "login"
+              ]
+            },
+            "description": "Customer portal password login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"buyer@acme.com\",\n  \"password\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data.accessToken) pm.collectionVariables.set('customerToken', body.data.accessToken);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "description": "Internal user management",
+      "item": [
+        {
+          "name": "Create an internal user (admin only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            },
+            "description": "Create an internal user (admin only)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Priya\",\n  \"lastName\": \"Sharma\",\n  \"email\": \"priya@dealflow.com\",\n  \"password\": \"password123\",\n  \"role\": \"admin\",\n  \"team\": \"West\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const id = body.data && (body.data._id || body.data.id);",
+                  "if (id) pm.collectionVariables.set('userId', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fetch one user",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{userId}}"
+                }
+              ]
+            },
+            "description": "Fetch one user"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "description": "Catalogue and variants",
+      "item": [
+        {
+          "name": "List products, paginated",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "category",
+                  "value": "hardware",
+                  "disabled": true
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Case-insensitive name match",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List products, paginated"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const first = (pm.response.json().data || [])[0];",
+                  "if (first && first._id) pm.collectionVariables.set('productId', first._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create a product (admin, sales_manager)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products"
+              ]
+            },
+            "description": "Create a product (admin, sales_manager)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Laptop\",\n  \"category\": \"hardware\",\n  \"basePrice\": 1200,\n  \"costPrice\": 800,\n  \"unit\": \"unit\",\n  \"taxRate\": 0.1,\n  \"description\": \"string\",\n  \"maxDiscountByCategory\": 0,\n  \"isSubscription\": true,\n  \"variants\": [\n    {\n      \"attributeName\": \"Size\",\n      \"attributeValue\": \"Large\",\n      \"priceAdjustment\": 50\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const id = body.data && (body.data._id || body.data.id);",
+                  "if (id) pm.collectionVariables.set('productId', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fetch one product, including deactivated ones",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{productId}}"
+                }
+              ]
+            },
+            "description": "Fetch one product, including deactivated ones"
+          },
+          "response": []
+        },
+        {
+          "name": "Partially update a product (admin, sales_manager)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/products/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{productId}}"
+                }
+              ]
+            },
+            "description": "Partially update a product (admin, sales_manager)\n\nSend only changed fields; at least one is required. The pricing check runs against the merged product.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Laptop\",\n  \"category\": \"hardware\",\n  \"basePrice\": 1200,\n  \"costPrice\": 800,\n  \"unit\": \"unit\",\n  \"taxRate\": 0.1,\n  \"description\": \"string\",\n  \"maxDiscountByCategory\": 0,\n  \"isSubscription\": true,\n  \"variants\": [\n    {\n      \"attributeName\": \"Size\",\n      \"attributeValue\": \"Large\",\n      \"priceAdjustment\": 50\n    }\n  ],\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Deactivate a product (soft delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{productId}}"
+                }
+              ]
+            },
+            "description": "Deactivate a product (soft delete)\n\nSets isActive to false. Quotations and orders reference products, so records are never destroyed."
+          },
+          "response": []
+        },
+        {
+          "name": "Add a variant (admin, sales_manager)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/products/:id/variants",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products",
+                ":id",
+                "variants"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{productId}}"
+                }
+              ]
+            },
+            "description": "Add a variant (admin, sales_manager)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"attributeName\": \"Size\",\n  \"attributeValue\": \"Large\",\n  \"priceAdjustment\": 50\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const variants = (body.data && body.data.variants) || [];",
+                  "const last = variants[variants.length - 1];",
+                  "if (last && last._id) pm.collectionVariables.set('variantId', last._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update one variant (admin, sales_manager)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/products/:id/variants/:variantId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products",
+                ":id",
+                "variants",
+                ":variantId"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{productId}}"
+                },
+                {
+                  "key": "variantId",
+                  "value": "{{variantId}}"
+                }
+              ]
+            },
+            "description": "Update one variant (admin, sales_manager)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"attributeName\": \"Size\",\n  \"attributeValue\": \"Large\",\n  \"priceAdjustment\": 50\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Price Lists",
+      "description": "Tier-specific pricing",
+      "item": [
+        {
+          "name": "List price lists, paginated, with products populated",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/pricelists",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pricelists"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "customerTier",
+                  "value": "bronze",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List price lists, paginated, with products populated"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const first = (pm.response.json().data || [])[0];",
+                  "if (first && first._id) pm.collectionVariables.set('priceListId', first._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create a price list (admin, sales_manager)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pricelists",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pricelists"
+              ]
+            },
+            "description": "Create a price list (admin, sales_manager)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Gold 2026\",\n  \"customerTier\": \"gold\",\n  \"currency\": \"USD\",\n  \"productPrices\": [\n    {\n      \"product\": \"{{productId}}\",\n      \"customPrice\": 1000\n    }\n  ],\n  \"validFrom\": \"2026-01-01T00:00:00.000Z\",\n  \"validTo\": \"2026-12-31T23:59:59.000Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const id = body.data && (body.data._id || body.data.id);",
+                  "if (id) pm.collectionVariables.set('priceListId', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "The price list currently in effect for a tier",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/pricelists/tier/:tierName",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pricelists",
+                "tier",
+                ":tierName"
+              ],
+              "variable": [
+                {
+                  "key": "tierName",
+                  "value": "{{tierName}}"
+                }
+              ]
+            },
+            "description": "The price list currently in effect for a tier\n\nFilters on the validFrom/validTo window and treats undated lists as always valid. Expired lists are not returned."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "description": "Liveness and readiness",
+      "item": [
+        {
+          "name": "Liveness probe",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Liveness probe",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Readiness probe reporting MongoDB and Redis connectivity",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ready",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ready"
+              ]
+            },
+            "description": "Readiness probe reporting MongoDB and Redis connectivity",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "customerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "magicLinkToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "productId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "variantId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "priceListId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tierName",
+      "value": "gold",
+      "type": "string"
+    }
+  ]
+}

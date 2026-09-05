@@ -15,7 +15,9 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "postman": "tsx scripts/postman.ts",
+    "docs:check": "tsx scripts/docs-check.ts"
   },
   "dependencies": {
     "argon2": "^0.41.1",
@@ -33,7 +35,6 @@
     "pino-http": "^10.4.0",
     "pino-pretty": "^13.0.0",
     "socket.io": "^4.8.1",
-    "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "zod": "^3.24.3"
   },
@@ -44,7 +45,6 @@
     "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^22.13.10",
     "@types/nodemailer": "^8.0.1",
-    "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
     "@typescript-eslint/eslint-plugin": "^8.26.0",
     "@typescript-eslint/parser": "^8.26.0",
