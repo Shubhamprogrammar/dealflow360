@@ -2605,6 +2605,116 @@
       ]
     },
     {
+      "name": "Subscriptions",
+      "description": "Subscription lifecycle, proration and recurring billing",
+      "item": [
+        {
+          "name": "Create a subscription from an order’s subscription line item",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/subscriptions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subscriptions"
+              ]
+            },
+            "description": "Create a subscription from an order’s subscription line item",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order\": \"{{orderId}}\",\n  \"plan\": \"{{subscriptionPlanId}}\",\n  \"startDate\": \"2026-01-01T00:00:00.000Z\",\n  \"product\": \"{{productId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const id = body.data && (body.data._id || body.data.id);",
+                  "if (id) pm.collectionVariables.set('subscriptionId', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Prorate a subscription for a mid-cycle quantity change",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/subscriptions/:id/prorate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subscriptions",
+                ":id",
+                "prorate"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{subscriptionId}}"
+                }
+              ]
+            },
+            "description": "Prorate a subscription for a mid-cycle quantity change",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newQuantity\": 2,\n  \"changeDate\": \"2026-01-01T00:00:00.000Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Enqueue the recurring billing run for all due subscriptions",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/subscriptions/generate-invoices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subscriptions",
+                "generate-invoices"
+              ]
+            },
+            "description": "Enqueue the recurring billing run for all due subscriptions\n\nEnqueues a BullMQ job rather than running the billing sweep inline; the actual invoice generation happens asynchronously in the background worker."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Health",
       "description": "Liveness and readiness",
       "item": [
@@ -2737,6 +2847,16 @@
     {
       "key": "tierName",
       "value": "gold",
+      "type": "string"
+    },
+    {
+      "key": "orderId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "subscriptionId",
+      "value": "",
       "type": "string"
     }
   ]

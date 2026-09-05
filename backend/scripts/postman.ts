@@ -43,6 +43,7 @@ const PATH_VARIABLE: Record<string, Record<string, string>> = {
   '/subscription-plans/{id}/cancellation': { id: 'subscriptionPlanId' },
   '/customers/{id}': { id: 'customerId' },
   '/customers/{id}/assign-rep': { id: 'customerId' },
+  '/subscriptions/{id}/prorate': { id: 'subscriptionId' },
 };
 
 /** Fixed so regenerating the collection produces no spurious diff. */
@@ -139,6 +140,11 @@ const TESTS: Record<string, string[]> = {
     'const first = (pm.response.json().data || [])[0];',
     "if (first && first._id) pm.collectionVariables.set('priceListId', first._id);",
   ],
+  'POST /subscriptions': [
+    'const body = pm.response.json();',
+    'const id = body.data && (body.data._id || body.data.id);',
+    "if (id) pm.collectionVariables.set('subscriptionId', id);",
+  ],
 };
 
 /** Resolves $ref pointers and flattens allOf so the sampler sees a plain schema. */
@@ -196,6 +202,9 @@ const sample = (rawSchema: unknown, depth = 0, property = ''): unknown => {
       if (str(schema.description)?.includes('24-hex user id')) return '{{userId}}';
       if (str(schema.description)?.includes('24-hex warehouse id'))
         return property === 'toWarehouse' ? '{{toWarehouseId}}' : '{{fromWarehouseId}}';
+      if (str(schema.description)?.includes('24-hex order id')) return '{{orderId}}';
+      if (str(schema.description)?.includes('24-hex subscription plan id'))
+        return '{{subscriptionPlanId}}';
       return str(schema.description)?.includes('24-hex') ? '{{productId}}' : 'string';
     default:
       return schema.properties ? sample({ ...schema, type: 'object' }, depth, property) : null;
@@ -326,6 +335,8 @@ const collection = {
     { key: 'customerId', value: '', type: 'string' },
     { key: 'salesRepId', value: '', type: 'string' },
     { key: 'tierName', value: 'gold', type: 'string' },
+    { key: 'orderId', value: '', type: 'string' },
+    { key: 'subscriptionId', value: '', type: 'string' },
   ],
 };
 
