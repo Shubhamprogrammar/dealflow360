@@ -61,19 +61,16 @@ const view = (quotation: QuotationDocument & { _id: Types.ObjectId }): Quotation
   updatedAt: quotation.updatedAt,
 });
 
-// roleaccess.md: Rep permissions are "create & edit quotations" (their own —
-// pipeline access is scoped to "own deals only"); Manager's own permissions
-// list is approve/reject/comment/escalate, not editing a rep's draft. So
-// mutation stays owner-only regardless of role — the route-level `authorize`
-// in quotation.routes.ts already restricts who can reach these at all.
+const PRIVILEGED_ROLES: Role[] = ['admin', 'sales_manager'];
 const findOwned = async (
   id: string,
   requester: Requester,
 ): Promise<ReturnType<typeof QuotationModel.hydrate>> => {
   const quotation = await QuotationModel.findById(id).exec();
   if (!quotation) throw new ApiError(404, 'Quotation not found', 'QUOTATION_NOT_FOUND');
-  if (quotation.createdBy.toString() !== requester.id)
-    throw new ApiError(403, 'You do not own this quotation', 'FORBIDDEN');
+  const isOwner = quotation.createdBy.toString() === requester.id;
+  if (!isOwner && !PRIVILEGED_ROLES.includes(requester.role))
+    throw new ApiError(403, 'You do not have access to this quotation', 'FORBIDDEN');
   return quotation;
 };
 
@@ -174,7 +171,6 @@ const calculateBlendedRisk = async (
 
   return { score, level, violations };
 };
-
 export const quotationService = {
   create: async (input: CreateQuotationInput, requester: Requester): Promise<QuotationView> => {
     const customer = await CustomerModel.findById(input.customer).exec();
@@ -338,7 +334,6 @@ export const quotationService = {
     await quotation.save();
     return view(quotation);
   },
-
   calculateRisk: async (id: string, requester: Requester): Promise<QuotationView> => {
     const quotation = await findOwned(id, requester);
     assertDraft(quotation);

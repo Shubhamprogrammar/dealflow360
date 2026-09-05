@@ -59,7 +59,6 @@ export const removeLineItem = async (req: Request, res: Response): Promise<void>
   );
   sendSuccess(res, 200, 'Line item removed successfully', quotation);
 };
-
 export const calculateRisk = async (req: Request, res: Response): Promise<void> => {
   const quotation = await quotationService.calculateRisk(req.params.id as string, req.user!);
   sendSuccess(res, 200, 'Risk score calculated successfully', quotation);
