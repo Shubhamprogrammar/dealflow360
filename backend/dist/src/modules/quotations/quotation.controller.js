@@ -48,3 +48,7 @@ export const getUpsellSuggestions = async (req, res) => {
     const suggestions = await quotationService.getUpsellSuggestions(req.params.id, req.user);
     sendSuccess(res, 200, 'Upsell suggestions fetched successfully', suggestions);
 };
+export const respondNegotiation = async (req, res) => {
+    const quotation = await approvalService.respondToNegotiation(req.params.id, req.user, req.body);
+    sendSuccess(res, 200, 'Negotiation response recorded', quotation);
+};

@@ -4,6 +4,7 @@ import { authPaths } from './paths/auth.paths.js';
 import { customerPaths } from './paths/customer.paths.js';
 import { discountTierPaths } from './paths/discount-tier.paths.js';
 import { healthPaths } from './paths/health.paths.js';
+import { portalPaths } from './paths/portal.paths.js';
 import { pricelistPaths } from './paths/pricelist.paths.js';
 import { productPaths } from './paths/product.paths.js';
 import { orderPaths } from './paths/order.paths.js';
@@ -41,6 +42,7 @@ export const swaggerSpec = {
       name: 'Subscriptions',
       description: 'Subscription lifecycle, proration and recurring billing',
     },
+    { name: 'Portal', description: 'Customer-facing quotation viewing and negotiation' },
     { name: 'Health', description: 'Liveness and readiness' },
   ],
   components: {
@@ -359,6 +361,7 @@ export const swaggerSpec = {
     ...approvalPaths,
     ...orderPaths,
     ...subscriptionPaths,
+    ...portalPaths,
     ...healthPaths,
   },
 } as const;

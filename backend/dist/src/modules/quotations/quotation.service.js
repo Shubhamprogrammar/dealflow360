@@ -58,7 +58,10 @@ const assertDraft = (quotation) => {
     if (quotation.status !== 'draft')
         throw new ApiError(409, 'Only draft quotations can be modified', 'QUOTATION_NOT_DRAFT');
 };
-const recalculateTotals = async (quotation) => {
+// Exported for approval.service.ts's respondToNegotiation, which applies its
+// own line-item edits (rep countering a customer's negotiation) and needs
+// the same totals recompute without duplicating the math.
+export const recalculateTotals = async (quotation) => {
     const productIds = [...new Set(quotation.lineItems.map((item) => item.product.toString()))];
     const products = await ProductModel.find({ _id: { $in: productIds } })
         .select('taxRate')
@@ -95,7 +98,9 @@ export const getDiscountTierForCustomer = async (customerId) => {
         throw new ApiError(404, `No discount tier configured for customer tier "${customer.customerTier}"`, 'DISCOUNT_TIER_NOT_FOUND');
     return discountTier;
 };
-const calculateBlendedRisk = async (quotation) => {
+// Exported for approval.service.ts's respondToNegotiation -- same reasoning
+// as recalculateTotals above.
+export const calculateBlendedRisk = async (quotation) => {
     const discountTier = await getDiscountTierForCustomer(quotation.customer);
     const productIds = [...new Set(quotation.lineItems.map((item) => item.product.toString()))];
     const products = await ProductModel.find({ _id: { $in: productIds } })

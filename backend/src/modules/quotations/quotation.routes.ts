@@ -12,6 +12,7 @@ import {
   getUpsellSuggestions,
   listQuotations,
   removeLineItem,
+  respondNegotiation,
   submitApproval,
   updateLineItem,
   updateQuotation,
@@ -22,6 +23,7 @@ import {
   lineItemIdSchema,
   listQuotationsSchema,
   quotationIdSchema,
+  respondNegotiationSchema,
   updateLineItemSchema,
   updateQuotationSchema,
 } from './quotation.validation.js';
@@ -84,4 +86,10 @@ quotationRoutes.get(
   '/:id/upsell-suggestions',
   validate(quotationIdSchema),
   asyncHandler(getUpsellSuggestions),
+);
+quotationRoutes.post(
+  '/:id/respond-negotiation',
+  canBuild,
+  validate(respondNegotiationSchema),
+  asyncHandler(respondNegotiation),
 );
