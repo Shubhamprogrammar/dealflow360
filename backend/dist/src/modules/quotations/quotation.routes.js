@@ -3,7 +3,7 @@ import { asyncHandler } from '../../utils/async-handler.js';
 import { authenticate } from '../../middleware/auth.middleware.js';
 import { authorize } from '../../middleware/role.middleware.js';
 import { validate } from '../../middleware/validate.middleware.js';
-import { addLineItem, calculateRisk, createQuotation, deleteQuotation, getQuotation, listQuotations, removeLineItem, submitApproval, updateLineItem, updateQuotation, } from './quotation.controller.js';
+import { addLineItem, calculateRisk, createQuotation, deleteQuotation, getQuotation, getUpsellSuggestions, listQuotations, removeLineItem, submitApproval, updateLineItem, updateQuotation, } from './quotation.controller.js';
 import { addLineItemSchema, createQuotationSchema, lineItemIdSchema, listQuotationsSchema, quotationIdSchema, updateLineItemSchema, updateQuotationSchema, } from './quotation.validation.js';
 export const quotationRoutes = Router();
 const canBuild = authorize('admin', 'sales_rep', 'sales_manager');
@@ -18,3 +18,4 @@ quotationRoutes.put('/:id/line-items/:itemId', canBuild, validate(updateLineItem
 quotationRoutes.delete('/:id/line-items/:itemId', canBuild, canBuild, validate(lineItemIdSchema), asyncHandler(removeLineItem));
 quotationRoutes.post('/:id/calculate-risk', canBuild, validate(quotationIdSchema), asyncHandler(calculateRisk));
 quotationRoutes.post('/:id/submit-approval', canBuild, validate(quotationIdSchema), asyncHandler(submitApproval));
+quotationRoutes.get('/:id/upsell-suggestions', validate(quotationIdSchema), asyncHandler(getUpsellSuggestions));

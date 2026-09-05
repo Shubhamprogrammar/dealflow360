@@ -44,3 +44,7 @@ export const submitApproval = async (req, res) => {
         : 'Quotation auto-approved, no policy violations found';
     sendSuccess(res, 200, message, result);
 };
+export const getUpsellSuggestions = async (req, res) => {
+    const suggestions = await quotationService.getUpsellSuggestions(req.params.id, req.user);
+    sendSuccess(res, 200, 'Upsell suggestions fetched successfully', suggestions);
+};

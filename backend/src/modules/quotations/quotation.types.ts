@@ -1,4 +1,4 @@
-import type { QuotationStatus } from '../../types/domain.types.js';
+import type { ProductCategory, QuotationStatus } from '../../types/domain.types.js';
 
 export type CreateQuotationInput = {
   customer: string;
@@ -46,6 +46,18 @@ export type QuotationLineItemView = {
   margin: number;
   isSubscription: boolean;
   subscriptionPlan?: string;
+};
+
+export type UpsellSuggestionView = {
+  product: {
+    id: string;
+    name: string;
+    category: ProductCategory;
+    basePrice: number;
+  };
+  coOccurrenceScore: number;
+  isPromoted: boolean;
+  margin: number;
 };
 
 export type QuotationView = {

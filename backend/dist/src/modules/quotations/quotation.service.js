@@ -3,6 +3,7 @@ import { ApiError } from '../../utils/api-error.js';
 import { CustomerModel } from '../customers/customer.model.js';
 import { ProductModel } from '../products/product.model.js';
 import { DiscountTierModel } from '../discount-tiers/discount-tier.model.js';
+import { UpsellRuleModel } from '../upsell-rules/upsell-rule.model.js';
 import { QuotationModel } from './quotation.model.js';
 const DUPLICATE_KEY_ERROR_CODE = 11000;
 const isDuplicateKeyError = (error) => typeof error === 'object' &&
@@ -266,5 +267,59 @@ export const quotationService = {
         quotation.approvalRequired = violations.length > 0;
         await quotation.save();
         return view(quotation);
+    },
+    // Read-only, same visibility rules as getById -- reused rather than
+    // duplicated. Margin is basePrice - costPrice (per-unit, absolute): the
+    // Product schema has no stored `margin` field, so the architecture doc's
+    // `product.margin` snippet doesn't map to a real field -- see the B4 plan
+    // notes for this default.
+    getUpsellSuggestions: async (id, requester) => {
+        const quotation = await quotationService.getById(id, requester);
+        const cartProductIds = quotation.lineItems.map((item) => item.product);
+        if (cartProductIds.length === 0)
+            return [];
+        const rules = await UpsellRuleModel.find({
+            primaryProduct: { $in: cartProductIds },
+        }).exec();
+        const candidates = rules
+            .flatMap((rule) => rule.suggestedProducts)
+            .filter((suggestion) => !cartProductIds.includes(suggestion.product.toString()));
+        if (candidates.length === 0)
+            return [];
+        const productIds = [...new Set(candidates.map((candidate) => candidate.product.toString()))];
+        const products = await ProductModel.find({ _id: { $in: productIds }, isActive: true }).exec();
+        const productById = new Map(products.map((product) => [product._id.toString(), product]));
+        const bestByProduct = new Map();
+        for (const candidate of candidates) {
+            const productId = candidate.product.toString();
+            const product = productById.get(productId);
+            if (!product)
+                continue;
+            const margin = product.basePrice - product.costPrice;
+            if (margin < candidate.minMarginThreshold)
+                continue;
+            const existing = bestByProduct.get(productId);
+            const isBetter = !existing ||
+                (candidate.isPromoted && !existing.isPromoted) ||
+                (candidate.isPromoted === existing.isPromoted &&
+                    candidate.coOccurrenceScore > existing.coOccurrenceScore);
+            if (isBetter)
+                bestByProduct.set(productId, {
+                    product: {
+                        id: product._id.toString(),
+                        name: product.name,
+                        category: product.category,
+                        basePrice: product.basePrice,
+                    },
+                    coOccurrenceScore: candidate.coOccurrenceScore,
+                    isPromoted: candidate.isPromoted,
+                    margin,
+                });
+        }
+        return [...bestByProduct.values()].sort((a, b) => {
+            if (a.isPromoted !== b.isPromoted)
+                return a.isPromoted ? -1 : 1;
+            return b.coOccurrenceScore - a.coOccurrenceScore;
+        });
     },
 };
