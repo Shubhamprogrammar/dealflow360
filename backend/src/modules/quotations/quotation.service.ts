@@ -113,10 +113,13 @@ const findLineItemIndex = (quotation: QuotationDocument, itemId: string): number
   return index;
 };
 
-const calculateBlendedRisk = async (
-  quotation: QuotationDocument,
-): Promise<{ score: number; level: RiskLevel; violations: RiskViolation[] }> => {
-  const customer = await CustomerModel.findById(quotation.customer).select('customerTier').exec();
+// Shared with approval.service.ts (submit-approval needs the same tier ->
+// approvalChain lookup this uses for categorySpecificLimits) so both stay in
+// sync on the "no discount tier configured" error instead of duplicating it.
+export const getDiscountTierForCustomer = async (
+  customerId: Types.ObjectId | string,
+): Promise<ReturnType<typeof DiscountTierModel.hydrate>> => {
+  const customer = await CustomerModel.findById(customerId).select('customerTier').exec();
   if (!customer) throw new ApiError(404, 'Customer not found', 'CUSTOMER_NOT_FOUND');
 
   const discountTier = await DiscountTierModel.findOne({ tierName: customer.customerTier }).exec();
@@ -126,6 +129,13 @@ const calculateBlendedRisk = async (
       `No discount tier configured for customer tier "${customer.customerTier}"`,
       'DISCOUNT_TIER_NOT_FOUND',
     );
+  return discountTier;
+};
+
+const calculateBlendedRisk = async (
+  quotation: QuotationDocument,
+): Promise<{ score: number; level: RiskLevel; violations: RiskViolation[] }> => {
+  const discountTier = await getDiscountTierForCustomer(quotation.customer);
 
   const productIds = [...new Set(quotation.lineItems.map((item) => item.product.toString()))];
   const products = await ProductModel.find({ _id: { $in: productIds } })

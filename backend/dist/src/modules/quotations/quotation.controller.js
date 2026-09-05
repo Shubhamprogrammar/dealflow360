@@ -1,5 +1,6 @@
 import { sendSuccess } from '../../utils/api-response.js';
 import { quotationService } from './quotation.service.js';
+import { approvalService } from '../approvals/approval.service.js';
 export const createQuotation = async (req, res) => {
     const quotation = await quotationService.create(req.body, req.user);
     sendSuccess(res, 201, 'Quotation created successfully', quotation);
@@ -35,4 +36,11 @@ export const removeLineItem = async (req, res) => {
 export const calculateRisk = async (req, res) => {
     const quotation = await quotationService.calculateRisk(req.params.id, req.user);
     sendSuccess(res, 200, 'Risk score calculated successfully', quotation);
+};
+export const submitApproval = async (req, res) => {
+    const result = await approvalService.submitForApproval(req.params.id, req.user);
+    const message = result.approval
+        ? 'Quotation submitted for approval'
+        : 'Quotation auto-approved, no policy violations found';
+    sendSuccess(res, 200, message, result);
 };

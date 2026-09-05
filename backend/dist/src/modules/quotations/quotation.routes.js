@@ -3,7 +3,7 @@ import { asyncHandler } from '../../utils/async-handler.js';
 import { authenticate } from '../../middleware/auth.middleware.js';
 import { authorize } from '../../middleware/role.middleware.js';
 import { validate } from '../../middleware/validate.middleware.js';
-import { addLineItem, calculateRisk, createQuotation, deleteQuotation, getQuotation, listQuotations, removeLineItem, updateLineItem, updateQuotation, } from './quotation.controller.js';
+import { addLineItem, calculateRisk, createQuotation, deleteQuotation, getQuotation, listQuotations, removeLineItem, submitApproval, updateLineItem, updateQuotation, } from './quotation.controller.js';
 import { addLineItemSchema, createQuotationSchema, lineItemIdSchema, listQuotationsSchema, quotationIdSchema, updateLineItemSchema, updateQuotationSchema, } from './quotation.validation.js';
 export const quotationRoutes = Router();
 // roleaccess.md: only Sales Rep and Sales Manager can create/edit quotations.
@@ -20,3 +20,4 @@ quotationRoutes.post('/:id/line-items', canBuild, validate(addLineItemSchema), a
 quotationRoutes.put('/:id/line-items/:itemId', canBuild, validate(updateLineItemSchema), asyncHandler(updateLineItem));
 quotationRoutes.delete('/:id/line-items/:itemId', canBuild, validate(lineItemIdSchema), asyncHandler(removeLineItem));
 quotationRoutes.post('/:id/calculate-risk', canBuild, validate(quotationIdSchema), asyncHandler(calculateRisk));
+quotationRoutes.post('/:id/submit-approval', canBuild, validate(quotationIdSchema), asyncHandler(submitApproval));
