@@ -4,13 +4,17 @@ import { authorize } from '../../middleware/role.middleware.js';
 import { validate } from '../../middleware/validate.middleware.js';
 import { asyncHandler } from '../../utils/async-handler.js';
 import {
+  escalateDeal,
   getDeliverySlippage,
   getDiscountAnomalies,
   getStalledDeals,
+  nudgeRep,
 } from './dashboard.controller.js';
 import {
   deliverySlippageSchema,
   discountAnomaliesSchema,
+  escalateSchema,
+  nudgeRepSchema,
   stalledDealsSchema,
 } from './dashboard.validation.js';
 
@@ -31,3 +35,5 @@ dashboardRoutes.get(
   validate(deliverySlippageSchema),
   asyncHandler(getDeliverySlippage),
 );
+dashboardRoutes.post('/nudge-rep', validate(nudgeRepSchema), asyncHandler(nudgeRep));
+dashboardRoutes.post('/escalate', validate(escalateSchema), asyncHandler(escalateDeal));

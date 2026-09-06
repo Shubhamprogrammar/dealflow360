@@ -5,7 +5,9 @@ import type {
   Quotation,
   QuoteLine,
   ApprovalStep,
+  ApprovalDecision,
   AuditEntry,
+  LineComment,
   HealthAlert,
   Customer,
   Tier,
@@ -103,6 +105,19 @@ export function mapCategory(c: string): Product['category'] {
   return CATEGORY_MAP[c?.toLowerCase()] ?? 'Hardware';
 }
 
+const CATEGORY_REVERSE: Record<Product['category'], string> = {
+  Hardware: 'hardware',
+  Services: 'services',
+  Subscription: 'subscriptions',
+};
+
+// mapCategory maps backend 'subscriptions' -> frontend 'Subscription' (singular),
+// so a naive .toLowerCase() on the way back produces 'subscription', which fails
+// the backend's PRODUCT_CATEGORIES enum check. Reverse through this table instead.
+export function reverseCategory(c: Product['category']): string {
+  return CATEGORY_REVERSE[c] ?? 'hardware';
+}
+
 // ---------------------------------------------------------------------------
 // Product mapping
 // ---------------------------------------------------------------------------
@@ -114,7 +129,9 @@ export function mapProduct(p: any): Product {
     category: mapCategory(p.category),
     price: p.basePrice ?? p.price ?? 0,
     unit: p.unit ?? 'Each',
-    tax: p.taxRate ?? p.tax ?? 0,
+    // Backend stores taxRate as a fraction (0.1 = 10%); the UI shows/edits
+    // a plain percentage, so convert on the way in and back out on save.
+    tax: p.taxRate !== undefined ? Math.round(p.taxRate * 100 * 100) / 100 : p.tax ?? 0,
     isSubscription: p.isSubscription ?? false,
     recurring: p.billingCycle ? (p.billingCycle.charAt(0).toUpperCase() + p.billingCycle.slice(1)) : undefined,
     variants: (p.variants ?? []).map((v: { attributeName?: string; attribute?: string; attributeValue?: string; values?: string[]; priceAdjustment?: number; extraPrice?: number }) => ({
@@ -152,6 +169,7 @@ export function mapQuotation(q: any): Quotation {
     id: q._id ?? q.id,
     customerId: q.customer ?? q.customerId ?? '',
     customerName: q.customerName ?? q.customer?.companyName ?? 'Unknown',
+    repName: q.createdByName ?? 'Unknown Rep',
     tier: mapTier(q.customerTier ?? q.tier ?? 'bronze'),
     status: mapQuotationStatus(q.status ?? 'draft'),
     lines: lineItems,
@@ -171,17 +189,69 @@ export function mapQuotation(q: any): Quotation {
   };
 }
 
+// The customer portal's quotation shape is genuinely different from the
+// staff-facing one -- comments live nested under customerNegotiation keyed
+// by line *index* (not id), and there's no customer/rep/risk data at all
+// (roleaccess.md: customers have no access to margins, risk, or approvals).
+// Reusing mapQuotation silently dropped comments and counter-discount.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function mapPortalQuotation(q: any): Quotation {
+  const rawLineItems = q.lineItems ?? [];
+  const lineItems = rawLineItems.map(mapQuotationLine);
+  const negotiation = q.customerNegotiation ?? {};
+
+  const comments: LineComment[] = (negotiation.customerComments ?? []).map(
+    (c: any) => ({
+      lineId: lineItems[c.lineItemIndex]?.id ?? String(c.lineItemIndex),
+      author: 'Customer',
+      text: c.comment,
+    }),
+  );
+  if (negotiation.repResponse) {
+    comments.push({ lineId: 'general', author: 'Rep', text: negotiation.repResponse });
+  }
+
+  return {
+    id: q._id ?? q.id,
+    customerId: '',
+    customerName: '',
+    repName: '',
+    tier: 'Bronze',
+    status: mapQuotationStatus(q.status ?? 'draft'),
+    lines: lineItems,
+    blendedRiskScore: 'LOW',
+    approvalSteps: [],
+    auditTrail: [],
+    comments,
+    counterDiscountPct: negotiation.counterDiscountProposal,
+    createdAt: q.createdAt ?? '',
+    updatedAt: q.updatedAt ?? '',
+    quoteNumber: q.quoteNumber ?? q.id,
+    grandTotal: q.grandTotal ?? 0,
+    subtotal: q.subtotal ?? 0,
+    totalDiscount: q.totalDiscount ?? 0,
+    tax: q.tax ?? 0,
+  };
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapApprovalStep(s: any): ApprovalStep {
   const roleMap: Record<string, 'SalesManager' | 'FinanceOps'> = {
     sales_manager: 'SalesManager',
     finance: 'FinanceOps',
   };
+  const decisionMap: Record<string, ApprovalDecision> = {
+    pending: 'pending',
+    approved: 'approved',
+    rejected: 'rejected',
+    revision_requested: 'returned',
+  };
+  const rawDecision = s.status ?? s.decision ?? 'pending';
   return {
     role: roleMap[s.role] ?? s.role ?? 'SalesManager',
-    decision: s.status ?? s.decision ?? 'pending',
+    decision: decisionMap[rawDecision] ?? 'pending',
     reason: s.reason,
-    by: s.by ?? s.decidedBy,
+    by: s.byName ?? s.by ?? s.decidedBy,
     at: s.at ?? s.decidedAt,
   };
 }
@@ -302,36 +372,39 @@ export function mapCustomer(c: any): Customer {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function mapStalledDeal(d: any): HealthAlert {
   return {
-    id: d._id ?? d.id ?? `stalled-${Math.random().toString(36).slice(2)}`,
-    dealName: d.customerName ?? d.customer ?? 'Unknown',
-    issue: `Idle ${d.daysSinceUpdate ?? d.daysStalled ?? '?'} days`,
-    flaggedDate: d.lastUpdated ?? d.updatedAt ?? '',
+    id: d.id ?? d._id ?? `stalled-${Math.random().toString(36).slice(2)}`,
+    dealName: d.customerName ?? 'Unknown',
+    issue: `Idle ${d.daysStalled ?? '?'} days`,
+    flaggedDate: d.lastActivityAt ?? '',
     action: 'Nudge sent',
-    severity: (d.daysSinceUpdate ?? d.daysStalled ?? 0) >= 14 ? 'Critical' : 'Warning',
+    severity: (d.daysStalled ?? 0) >= 14 ? 'Critical' : 'Warning',
+    quotationId: d.id ?? d._id,
   };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function mapDiscountAnomaly(a: any): HealthAlert {
   return {
-    id: a._id ?? a.id ?? `anomaly-${Math.random().toString(36).slice(2)}`,
-    dealName: a.customerName ?? a.customer ?? 'Unknown',
-    issue: `Discount ${a.discountPercent ?? a.discountGiven ?? '?'}% vs ${a.categoryLimit ?? a.allowed ?? '?'}% limit (+${a.overagePoints ?? 0}pt)`,
-    flaggedDate: a.createdAt ?? '',
+    id: a.lineItem ?? a._id ?? `anomaly-${Math.random().toString(36).slice(2)}`,
+    dealName: a.customerName ?? 'Unknown',
+    issue: `Discount ${a.discountPercent ?? '?'}% vs ${a.allowedDiscount ?? '?'}% limit (+${a.overagePoints ?? 0}pt)`,
+    flaggedDate: a.flaggedAt ?? '',
     action: 'Escalated to manager',
     severity: (a.overagePoints ?? 0) >= 10 ? 'Critical' : 'Warning',
+    quotationId: a.quotation,
   };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function mapDeliverySlippage(d: any): HealthAlert {
   return {
-    id: d._id ?? d.id ?? `slip-${Math.random().toString(36).slice(2)}`,
-    dealName: d.customerName ?? d.customer ?? 'Unknown',
-    issue: `Delivery ${d.daysLate ?? '?'} days late`,
+    id: d.id ?? d._id ?? `slip-${Math.random().toString(36).slice(2)}`,
+    dealName: d.customerName ?? 'Unknown',
+    issue: `Delivery ${d.daysOverdue ?? '?'} days late`,
     flaggedDate: d.promisedDeliveryDate ?? '',
     action: 'Review needed',
-    severity: (d.daysLate ?? 0) >= 7 ? 'Critical' : 'Warning',
+    severity: (d.daysOverdue ?? 0) >= 7 ? 'Critical' : 'Warning',
+    quotationId: d.quotation,
   };
 }
 
@@ -340,7 +413,7 @@ export function mapDeliverySlippage(d: any): HealthAlert {
 // ---------------------------------------------------------------------------
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function mapFulfillmentOrder(o: any): FulfillmentOrder {
-  const splits = (o.fulfillmentSplit ?? o.suggestedSplit ?? []).map(mapSplitLine);
+  const splits = (o.warehouseSplit ?? []).map(mapSplitLine);
   const warehouseNames = splits.map((s: SplitLine) => s.warehouseName);
   return {
     id: o._id ?? o.id,
@@ -355,10 +428,16 @@ export function mapFulfillmentOrder(o: any): FulfillmentOrder {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function mapSplitLine(s: any): SplitLine {
+  // A warehouse split groups multiple per-product items; there's no
+  // top-level quantity on the split itself, so sum the items.
+  const items = s.items ?? [];
+  const qty = items.length > 0
+    ? items.reduce((sum: number, item: any) => sum + (item.quantity ?? 0), 0)
+    : s.quantity ?? s.qty ?? 0;
   return {
     warehouseId: s.warehouse ?? s.warehouseId ?? '',
     warehouseName: s.warehouseName ?? s.warehouse?.name ?? 'Unknown',
-    qty: s.quantity ?? s.qty ?? 0,
+    qty,
     estShipments: s.shipments ?? 1,
     estCost: s.shippingCost ?? s.estCost ?? 0,
   };
@@ -435,7 +514,7 @@ export function mapDiscountConfig(tiers: any[]): DiscountConfig {
       if (!existing) {
         categoryCeilings.push({
           category: mapCategory(cl.category ?? ''),
-          maxDiscountPct: cl.maxDiscountPercent ?? 0,
+          maxDiscountPct: cl.maxDiscount ?? 0,
         });
       }
     }

@@ -22,10 +22,15 @@ export const approvalRoutes = Router();
 // quotes. The service further restricts each action to whichever role owns
 // the *current* step of that specific approval chain.
 const canDecide = authorize('sales_manager', 'finance');
+// The queue is a shared overview (matches the frontend's /approvals route
+// access), not scoped to "my deals" -- Sales Rep must not see it, since
+// listQueue returns every quotation's approval history regardless of who
+// created it.
+const canViewQueue = authorize('sales_manager', 'finance', 'admin');
 
 approvalRoutes.use(authenticate);
 
-approvalRoutes.get('/queue', validate(listQueueSchema), asyncHandler(listQueue));
+approvalRoutes.get('/queue', canViewQueue, validate(listQueueSchema), asyncHandler(listQueue));
 approvalRoutes.post(
   '/:id/approve',
   canDecide,

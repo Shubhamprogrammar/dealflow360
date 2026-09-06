@@ -28,16 +28,20 @@ const view = (
 ): PortalQuotationView => ({
   id: quotation._id.toString(),
   quoteNumber: quotation.quoteNumber,
-  lineItems: quotation.lineItems.map((item) => ({
-    id: item._id.toString(),
-    product: item.product.toString(),
-    variantId: item.variantId?.toString(),
-    quantity: item.quantity,
-    unitPrice: item.unitPrice,
-    discountPercent: item.discountPercent,
-    lineTotal: item.lineTotal,
-    isSubscription: item.isSubscription,
-  })),
+  lineItems: quotation.lineItems.map((item) => {
+    const product = item.product as any;
+    return {
+      id: item._id.toString(),
+      product: product?._id ? product._id.toString() : item.product.toString(),
+      productName: product?.name ?? 'Unknown Product',
+      variantId: item.variantId?.toString(),
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      discountPercent: item.discountPercent,
+      lineTotal: item.lineTotal,
+      isSubscription: item.isSubscription,
+    };
+  }),
   subtotal: quotation.subtotal,
   totalDiscount: quotation.totalDiscount,
   tax: quotation.tax,
@@ -60,7 +64,7 @@ const findVisible = async (
   id: string,
   customerId: string,
 ): Promise<ReturnType<typeof QuotationModel.hydrate>> => {
-  const quotation = await QuotationModel.findById(id).exec();
+  const quotation = await QuotationModel.findById(id).populate('lineItems.product', 'name').exec();
   if (
     !quotation ||
     quotation.customer.toString() !== customerId ||
@@ -115,7 +119,9 @@ export const portalService = {
     const quotations = await QuotationModel.find({
       customer: customerId,
       status: { $in: VISIBLE_STATUSES }
-    }).exec();
+    })
+      .populate('lineItems.product', 'name')
+      .exec();
     return quotations.map(view);
   },
 

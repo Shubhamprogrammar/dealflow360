@@ -42,7 +42,7 @@ export default function ReportsPage() {
   const { data: quotations = [] } = useQuery({ queryKey: ['quotations'], queryFn: quotationService.list });
 
   const reps = useMemo(
-    () => Array.from(new Set(quotations.map((q) => q.auditTrail[0]?.user).filter(Boolean))) as string[],
+    () => Array.from(new Set(quotations.map((q) => q.repName).filter(Boolean))) as string[],
     [quotations],
   );
   const products = useMemo(
@@ -53,7 +53,7 @@ export default function ReportsPage() {
   const filtered = useMemo(() => {
     return quotations.filter((q) => {
       if (!withinPeriod(q.createdAt, period)) return false;
-      if (rep !== 'All' && q.auditTrail[0]?.user !== rep) return false;
+      if (rep !== 'All' && q.repName !== rep) return false;
       if (status !== 'All' && q.status !== status) return false;
       if (product !== 'All' && !q.lines.some((l) => l.productName === product)) return false;
       return true;
@@ -85,7 +85,7 @@ export default function ReportsPage() {
       exportToXls(
         'dealflow360-report',
         ['Quotation', 'Customer', 'Rep', 'Status', 'Amount', 'Created'],
-        filtered.map((q) => [q.id, q.customerName, q.auditTrail[0]?.user ?? '—', statusLabel[q.status], total(q.lines).toFixed(2), q.createdAt]),
+        filtered.map((q) => [q.id, q.customerName, q.repName, statusLabel[q.status], total(q.lines).toFixed(2), q.createdAt]),
       );
     }
   };
@@ -173,7 +173,7 @@ export default function ReportsPage() {
               <Tr key={q.id}>
                 <Td className="font-medium text-slate-900">{q.id}</Td>
                 <Td>{q.customerName}</Td>
-                <Td>{q.auditTrail[0]?.user ?? '—'}</Td>
+                <Td>{q.repName}</Td>
                 <Td>
                   <Badge tone={statusTone[q.status]}>{statusLabel[q.status]}</Badge>
                 </Td>

@@ -86,6 +86,7 @@ export interface Quotation {
   id: string;
   customerId: string;
   customerName: string;
+  repName: string;
   tier: Tier;
   status: QuotationStatus;
   lines: QuoteLine[];
@@ -171,6 +172,7 @@ export interface HealthAlert {
   flaggedDate: string;
   action: string;
   severity: 'Info' | 'Warning' | 'Critical';
+  quotationId?: string;
 }
 
 export interface DiscountConfig {

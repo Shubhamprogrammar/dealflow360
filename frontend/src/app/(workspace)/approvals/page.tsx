@@ -19,9 +19,14 @@ export default function ApprovalsPage() {
   const [riskFilter, setRiskFilter] = useState('All');
   const { data: quotations = [] } = useQuery({ queryKey: ['approvals'], queryFn: approvalService.queue });
 
+  // A returned quotation's own status resets to "Draft" (it goes back to the
+  // rep for edits), so "was this returned" has to come from its approval
+  // steps, not its current status.
+  const wasReturned = (q: (typeof quotations)[number]) => q.approvalSteps.some((s) => s.decision === 'returned');
+
   const inApproval = quotations.filter((q) => q.approvalSteps.length > 0);
   const pendingCount = inApproval.filter((q) => q.status === 'PendingApproval').length;
-  const returnedCount = quotations.filter((q) => q.status === 'Returned').length;
+  const returnedCount = quotations.filter(wasReturned).length;
   const approvedCount = quotations.filter((q) => q.status === 'Approved' || q.status === 'Confirmed').length;
 
   const rows = quotations;
@@ -30,7 +35,7 @@ export default function ApprovalsPage() {
     const q = search.trim().toLowerCase();
     return rows.filter((quote) => {
       if (stageFilter === 'Pending' && quote.status !== 'PendingApproval') return false;
-      if (stageFilter === 'Returned' && quote.status !== 'Returned') return false;
+      if (stageFilter === 'Returned' && !wasReturned(quote)) return false;
       if (stageFilter === 'Approved' && quote.status !== 'Approved' && quote.status !== 'Confirmed') return false;
       if (riskFilter !== 'All' && quote.blendedRiskScore !== riskFilter) return false;
       if (q && !quote.customerName.toLowerCase().includes(q) && !quote.id.toLowerCase().includes(q)) return false;

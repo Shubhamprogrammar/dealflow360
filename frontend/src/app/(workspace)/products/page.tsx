@@ -42,7 +42,6 @@ export default function ProductsPage() {
         <Button variant="primary" onClick={() => router.push('/products/new')}>
           + New Product
         </Button>
-        <Button>Manage Price fields</Button>
       </div>
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
@@ -99,7 +98,7 @@ export default function ProductsPage() {
                 <Td>{p.variants.length > 0 ? p.variants.map((v) => v.attribute).join(', ') : '—'}</Td>
                 <Td>
                   ${p.price}
-                  {p.isSubscription ? `/${p.recurring?.toLowerCase()}` : ''}
+                  {p.isSubscription && p.recurring ? `/${p.recurring.toLowerCase()}` : ''}
                 </Td>
                 <Td>{p.unit}</Td>
                 <Td>{p.tax}%</Td>

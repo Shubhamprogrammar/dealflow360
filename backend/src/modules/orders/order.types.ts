@@ -12,6 +12,7 @@ export type WarehouseSplitItemView = {
 
 export type WarehouseSplitView = {
   warehouse: string;
+  warehouseName?: string;
   items: WarehouseSplitItemView[];
   shippingCost: number;
   status: FulfillmentStatus;
@@ -29,11 +30,19 @@ export type FulfillmentPreview = {
   backorders: BackorderView[];
 };
 
+export type ListOrdersQuery = {
+  page: number;
+  limit: number;
+  fulfillmentStatus?: FulfillmentStatus;
+  customer?: string;
+};
+
 export type OrderView = {
   id: string;
   orderNumber: string;
   quotation?: string;
   customer: string;
+  customerName?: string;
   lineItems: Array<{
     id: string;
     product: string;

@@ -289,27 +289,33 @@ export const approvalService = {
     return view(approval);
   },
 
+  // This is the shared "Approvals" overview (Sales Manager, Finance, Admin all
+  // land here per the frontend's route table), not a personal action queue --
+  // it used to filter to "is the current step's role mine", which meant Admin
+  // (never an approverRole) always saw nothing, and Sales Manager/Finance only
+  // ever saw their own currently-pending step, hiding everything already
+  // decided. `assertActionable` independently re-checks role + pending state
+  // before any decide action, so broadening what's *listed* here doesn't
+  // widen who can actually approve/reject/return.
   listQueue: async (
     query: ListQueueQuery,
-    requester: Requester,
   ): Promise<{ items: QuotationView[]; pagination: Pagination }> => {
-    const pending = await ApprovalModel.find({ finalStatus: 'pending' })
-      .sort({ createdAt: 1 })
+    const total = await ApprovalModel.countDocuments({}).exec();
+    const approvals = await ApprovalModel.find({})
+      .sort({ createdAt: -1 })
+      .skip((query.page - 1) * query.limit)
+      .limit(query.limit)
       .exec();
 
-    const mine = pending.filter((approval) => {
-      const currentStepDoc = approval.approvalChain[approval.currentStep];
-      return currentStepDoc?.status === 'pending' && currentStepDoc.approverRole === requester.role;
-    });
-
-    const total = mine.length;
-    const start = (query.page - 1) * query.limit;
-    const paginatedMine = mine.slice(start, start + query.limit);
-
     const items = await Promise.all(
-      paginatedMine.map(async (approval) => {
+      approvals.map(async (approval) => {
         try {
-          return await quotationService.getById(approval.quotation.toString(), requester);
+          // getById already resolves and attaches approvalSteps (preferring
+          // the pending attempt), so no need to duplicate that here.
+          return await quotationService.getById(approval.quotation.toString(), {
+            id: approval.quotation.toString(),
+            role: 'admin',
+          });
         } catch {
           return null;
         }

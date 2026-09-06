@@ -3,6 +3,9 @@ import { CustomerModel } from '../customers/customer.model.js';
 import { OrderModel } from '../orders/order.model.js';
 import { ProductModel } from '../products/product.model.js';
 import { QuotationModel } from '../quotations/quotation.model.js';
+import { UserModel } from '../users/user.model.js';
+import { enqueueEmail } from '../../jobs/jobs.js';
+import { ApiError } from '../../utils/api-error.js';
 import type { ProductDocument } from '../products/product.model.js';
 import type { QuotationDocument } from '../quotations/quotation.model.js';
 import type { OrderDocument } from '../orders/order.model.js';
@@ -12,6 +15,8 @@ import type {
   DeliverySlippageView,
   DiscountAnomaliesQuery,
   DiscountAnomalyView,
+  EscalateDealInput,
+  NudgeRepInput,
   StalledDealsQuery,
   StalledDealView,
 } from './dashboard.types.js';
@@ -50,10 +55,12 @@ const discountLimit = (
 const stalledDealView = (
   quotation: QuotationDocument & { _id: { toString(): string } },
   asOf: Date,
+  customerNameById: Map<string, string>,
 ): StalledDealView => ({
   id: quotation._id.toString(),
   quoteNumber: quotation.quoteNumber,
   customer: quotation.customer.toString(),
+  customerName: customerNameById.get(quotation.customer.toString()) ?? 'Unknown customer',
   createdBy: quotation.createdBy.toString(),
   status: quotation.status,
   grandTotal: quotation.grandTotal,
@@ -64,10 +71,13 @@ const stalledDealView = (
 const deliverySlippageView = (
   order: OrderDocument & { _id: { toString(): string } },
   asOf: Date,
+  customerNameById: Map<string, string>,
 ): DeliverySlippageView => ({
   id: order._id.toString(),
   orderNumber: order.orderNumber,
   customer: order.customer.toString(),
+  customerName: customerNameById.get(order.customer.toString()) ?? 'Unknown customer',
+  quotation: order.quotation?.toString(),
   fulfillmentStatus: order.fulfillmentStatus,
   totalAmount: order.totalAmount,
   promisedDeliveryDate: order.promisedDeliveryDate!,
@@ -91,7 +101,16 @@ export const dashboardService = {
       .limit(query.limit)
       .exec();
 
-    return quotations.map((quotation) => stalledDealView(quotation, asOf));
+    const customers = await CustomerModel.find({
+      _id: { $in: quotations.map((quotation) => quotation.customer) },
+    })
+      .select('companyName')
+      .exec();
+    const customerNameById = new Map(
+      customers.map((customer) => [customer._id.toString(), customer.companyName]),
+    );
+
+    return quotations.map((quotation) => stalledDealView(quotation, asOf, customerNameById));
   },
 
   discountAnomalies: async (
@@ -116,7 +135,7 @@ export const dashboardService = {
         .select('category maxDiscountByCategory')
         .exec(),
       CustomerModel.find({ _id: { $in: customerIds } })
-        .select('customerTier')
+        .select('customerTier companyName')
         .exec(),
       DiscountTierModel.find().exec(),
     ]);
@@ -124,6 +143,9 @@ export const dashboardService = {
     const productById = new Map(products.map((product) => [product._id.toString(), product]));
     const customerTierById = new Map(
       customers.map((customer) => [customer._id.toString(), customer.customerTier]),
+    );
+    const customerNameById = new Map(
+      customers.map((customer) => [customer._id.toString(), customer.companyName]),
     );
     const tierByName = new Map(tiers.map((tier) => [tier.tierName, tier]));
     const anomalies: DiscountAnomalyView[] = [];
@@ -143,12 +165,14 @@ export const dashboardService = {
           quotation: quotation._id.toString(),
           quoteNumber: quotation.quoteNumber,
           customer: quotation.customer.toString(),
+          customerName: customerNameById.get(quotation.customer.toString()) ?? 'Unknown customer',
           status: quotation.status,
           lineItem: item._id.toString(),
           product: item.product.toString(),
           discountPercent: item.discountPercent,
           allowedDiscount,
           overagePoints: item.discountPercent - allowedDiscount,
+          flaggedAt: quotation.updatedAt,
         });
       }
     }
@@ -182,6 +206,64 @@ export const dashboardService = {
       .limit(query.limit)
       .exec();
 
-    return orders.map((order) => deliverySlippageView(order, asOf));
+    const customers = await CustomerModel.find({
+      _id: { $in: orders.map((order) => order.customer) },
+    })
+      .select('companyName')
+      .exec();
+    const customerNameById = new Map(
+      customers.map((customer) => [customer._id.toString(), customer.companyName]),
+    );
+
+    return orders.map((order) => deliverySlippageView(order, asOf, customerNameById));
+  },
+
+  // Emails the rep who owns the quotation, reusing the same BullMQ/nodemailer
+  // pipeline the magic-link and quotation-created emails already go through.
+  nudgeRep: async ({ quotationId }: NudgeRepInput): Promise<void> => {
+    const quotation = await QuotationModel.findById(quotationId).exec();
+    if (!quotation)
+      throw new ApiError(404, 'Quotation not found', 'QUOTATION_NOT_FOUND');
+
+    const [rep, customer] = await Promise.all([
+      UserModel.findById(quotation.createdBy).exec(),
+      CustomerModel.findById(quotation.customer).exec(),
+    ]);
+    if (!rep) throw new ApiError(404, 'Sales rep not found for this quotation', 'USER_NOT_FOUND');
+
+    const customerName = customer?.companyName ?? 'the customer';
+    await enqueueEmail({
+      to: rep.email,
+      subject: `Nudge: quotation ${quotation.quoteNumber} needs attention`,
+      text: `Hi ${rep.firstName},\n\nQuotation ${quotation.quoteNumber} for ${customerName} has had no activity since ${quotation.updatedAt.toDateString()} and was flagged on the Deal Health dashboard. Please follow up.\n\nRegards,\nDealFlow360`,
+    });
+  },
+
+  // Emails every sales manager / finance user so a flagged deal gets reviewed
+  // above the rep level.
+  escalate: async ({ quotationId }: EscalateDealInput): Promise<void> => {
+    const quotation = await QuotationModel.findById(quotationId).exec();
+    if (!quotation)
+      throw new ApiError(404, 'Quotation not found', 'QUOTATION_NOT_FOUND');
+
+    const [customer, escalationTargets] = await Promise.all([
+      CustomerModel.findById(quotation.customer).exec(),
+      UserModel.find({ role: { $in: ['sales_manager', 'finance'] } })
+        .select('email')
+        .exec(),
+    ]);
+    if (escalationTargets.length === 0)
+      throw new ApiError(404, 'No sales manager or finance user found to escalate to', 'USER_NOT_FOUND');
+
+    const customerName = customer?.companyName ?? 'the customer';
+    await Promise.all(
+      escalationTargets.map((target) =>
+        enqueueEmail({
+          to: target.email,
+          subject: `Escalation: quotation ${quotation.quoteNumber} flagged`,
+          text: `Quotation ${quotation.quoteNumber} for ${customerName} has been escalated from the Deal Health dashboard and needs review.\n\nRegards,\nDealFlow360`,
+        }),
+      ),
+    );
   },
 };

@@ -19,26 +19,22 @@ export default function FulfillmentPage() {
   const { data: stock = [] } = useQuery({ queryKey: ['stock'], queryFn: fulfillmentService.listStock });
   const { data: orders = [] } = useQuery({ queryKey: ['fulfillment'], queryFn: fulfillmentService.list });
   const { data: quotations = [] } = useQuery({ queryKey: ['quotations'], queryFn: quotationService.list });
+  const { data: convertedQuotationIds = new Set<string>() } = useQuery({
+    queryKey: ['convertedQuotationIds'],
+    queryFn: fulfillmentService.listConvertedQuotationIds,
+  });
 
   const [stockSearch, setStockSearch] = useState('');
   const [selectedQuoteId, setSelectedQuoteId] = useState('');
 
   const createOrder = useMutation({
     mutationFn: async () => {
-      const res = await api.post<any>('/orders', { quotationId: selectedQuoteId });
+      const res = await api.post<any>('/orders', { quotation: selectedQuoteId });
       return res.data;
     },
     onSuccess: (order) => {
-      // Simulate adding to local list since there's no list endpoint
-      fulfillmentService._addLocalOrder({
-        id: order._id || order.id,
-        customerName: order.customerName || 'Unknown',
-        status: 'SplitPending',
-        warehouses: [],
-        suggestedSplit: [],
-        accepted: false,
-      });
       queryClient.invalidateQueries({ queryKey: ['fulfillment'] });
+      queryClient.invalidateQueries({ queryKey: ['convertedQuotationIds'] });
       setSelectedQuoteId('');
       router.push(`/fulfillment/${order._id || order.id}`);
     }
@@ -98,7 +94,7 @@ export default function FulfillmentPage() {
           options={[
             { value: '', label: 'Select quotation...' },
             ...quotations
-              .filter(q => q.status === 'Confirmed')
+              .filter(q => q.status === 'Confirmed' && !convertedQuotationIds.has(q.id))
               .map(q => ({ value: q.id, label: `${q.customerName} (${q.id})` }))
           ]}
           className="flex-1 max-w-xs"

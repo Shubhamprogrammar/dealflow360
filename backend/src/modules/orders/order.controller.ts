@@ -1,10 +1,16 @@
 import type { Request, Response } from 'express';
+import type { ListOrdersQuery } from './order.types.js';
 import { sendSuccess } from '../../utils/api-response.js';
 import { orderService } from './order.service.js';
 
 export const createOrder = async (req: Request, res: Response): Promise<void> => {
   const order = await orderService.createFromQuotation(req.body);
   sendSuccess(res, 201, 'Order created successfully', order);
+};
+
+export const listOrders = async (req: Request, res: Response): Promise<void> => {
+  const { items, pagination } = await orderService.list(req.query as unknown as ListOrdersQuery);
+  sendSuccess(res, 200, 'Orders fetched successfully', items, pagination);
 };
 
 export const calculateFulfillment = async (req: Request, res: Response): Promise<void> => {

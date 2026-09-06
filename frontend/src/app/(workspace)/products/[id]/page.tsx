@@ -23,6 +23,37 @@ const BLANK: Product = {
   variants: [],
 };
 
+// A plain number input snaps to "0" the instant it's cleared (Number('') === 0),
+// which then has to be deleted before typing the real value. Keeping the
+// on-screen text as local state lets the field sit empty mid-edit.
+function NumberField({
+  value,
+  onChange,
+  className,
+}: {
+  value: number;
+  onChange: (n: number) => void;
+  className?: string;
+}) {
+  const [text, setText] = useState(String(value));
+
+  return (
+    <input
+      type="number"
+      value={text}
+      onChange={(e) => {
+        const raw = e.target.value;
+        setText(raw);
+        if (raw !== '' && !Number.isNaN(Number(raw))) onChange(Number(raw));
+      }}
+      onBlur={() => {
+        if (text === '' || Number.isNaN(Number(text))) setText(String(value));
+      }}
+      className={className}
+    />
+  );
+}
+
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const isNew = id === 'new';
@@ -30,6 +61,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const queryClient = useQueryClient();
   const [form, setForm] = useState<Product>(BLANK);
   const [loadedId, setLoadedId] = useState<string | null>(null);
+  const [newVariant, setNewVariant] = useState({ attribute: '', value: '', extraPrice: 0 });
 
   const { data: existing, isLoading } = useQuery({
     queryKey: ['product', id],
@@ -53,6 +85,37 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       router.push('/products');
     },
   });
+
+  // The backend only accepts variants through the dedicated /variants endpoint
+  // on an already-created product -- PUT /products/:id has no variants field.
+  // So for a brand-new product (no id yet), a variant is staged locally and
+  // rides along in the create payload; for an existing product it's sent
+  // immediately.
+  const addVariantMutation = useMutation({
+    mutationFn: () => catalogService.addVariant(form.id, newVariant),
+    onSuccess: (updated) => {
+      setForm((prev) => ({ ...prev, variants: updated.variants }));
+      setNewVariant({ attribute: '', value: '', extraPrice: 0 });
+    },
+  });
+
+  const canAddVariant = newVariant.attribute.trim() !== '' && newVariant.value.trim() !== '';
+
+  const handleAddVariant = () => {
+    if (!canAddVariant) return;
+    if (isNew) {
+      setForm((prev) => ({
+        ...prev,
+        variants: [
+          ...prev.variants,
+          { attribute: newVariant.attribute, values: [newVariant.value], extraPrice: newVariant.extraPrice },
+        ],
+      }));
+      setNewVariant({ attribute: '', value: '', extraPrice: 0 });
+    } else {
+      addVariantMutation.mutate();
+    }
+  };
 
   if (!isNew && isLoading) {
     return <p className="px-6 py-8 text-slate-400">Loading…</p>;
@@ -82,12 +145,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           </label>
           <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-600">
             Tax %
-            <input
-              type="number"
-              value={form.tax}
-              onChange={(e) => setForm({ ...form, tax: Number(e.target.value) })}
-              className={inputClass}
-            />
+            <NumberField value={form.tax} onChange={(tax) => setForm({ ...form, tax })} className={inputClass} />
           </label>
           <div className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-slate-600">Category</span>
@@ -127,12 +185,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           </div>
           <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-600">
             Price
-            <input
-              type="number"
-              value={form.price}
-              onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
-              className={inputClass}
-            />
+            <NumberField value={form.price} onChange={(price) => setForm({ ...form, price })} className={inputClass} />
           </label>
           {form.isSubscription && (
             <div className="flex flex-col gap-1.5">
@@ -180,6 +233,45 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             )}
           </Tbody>
         </Table>
+
+        <div className="mt-3 grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-[1fr_1fr_1fr_auto]">
+          <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-600">
+            Attribute
+            <input
+              value={newVariant.attribute}
+              onChange={(e) => setNewVariant({ ...newVariant, attribute: e.target.value })}
+              placeholder="e.g. Color"
+              className={inputClass}
+            />
+          </label>
+          <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-600">
+            Value
+            <input
+              value={newVariant.value}
+              onChange={(e) => setNewVariant({ ...newVariant, value: e.target.value })}
+              placeholder="e.g. Black"
+              className={inputClass}
+            />
+          </label>
+          <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-600">
+            Extra price
+            <NumberField
+              value={newVariant.extraPrice}
+              onChange={(extraPrice) => setNewVariant({ ...newVariant, extraPrice })}
+              className={inputClass}
+            />
+          </label>
+          <div className="flex items-end">
+            <Button onClick={handleAddVariant} disabled={!canAddVariant || addVariantMutation.isPending}>
+              {addVariantMutation.isPending ? 'Adding…' : '+ Add Variant'}
+            </Button>
+          </div>
+          {addVariantMutation.isError && (
+            <p className="sm:col-span-4 text-sm text-red-600">
+              {addVariantMutation.error instanceof Error ? addVariantMutation.error.message : 'Failed to add variant.'}
+            </p>
+          )}
+        </div>
 
         <h2 className="mt-6 mb-3 text-sm font-medium text-slate-500">Pricelists</h2>
         <Table>

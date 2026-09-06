@@ -6,6 +6,7 @@ import { CustomerModel } from '../customers/customer.model.js';
 import { ProductModel, type ProductDocument } from '../products/product.model.js';
 import { DiscountTierModel } from '../discount-tiers/discount-tier.model.js';
 import { UpsellRuleModel } from '../upsell-rules/upsell-rule.model.js';
+import { ApprovalModel } from '../approvals/approval.model.js';
 import { enqueueQuotationEmail } from '../../jobs/jobs.js';
 import { inquiryService } from '../inquiries/inquiry.service.js';
 import { QuotationModel } from './quotation.model.js';
@@ -61,6 +62,9 @@ const view = (quotation: any): QuotationView => ({
   customerName: quotation.customer.companyName || 'Unknown Customer',
   customerTier: quotation.customer.customerTier || 'bronze',
   createdBy: quotation.createdBy._id ? quotation.createdBy._id.toString() : quotation.createdBy.toString(),
+  createdByName: quotation.createdBy.firstName
+    ? `${quotation.createdBy.firstName} ${quotation.createdBy.lastName}`.trim()
+    : 'Unknown Rep',
   sourceInquiry: quotation.sourceInquiry?.toString(),
   lineItems: quotation.lineItems.map((item: any) => ({
     id: item._id.toString(),
@@ -337,6 +341,7 @@ export const quotationService = {
         .limit(query.limit)
         .populate('customer')
         .populate('lineItems.product')
+        .populate('createdBy', 'firstName lastName')
         .exec(),
       QuotationModel.countDocuments(filter).exec(),
     ]);
@@ -353,13 +358,47 @@ export const quotationService = {
   },
 
   getById: async (id: string, requester: Requester): Promise<QuotationView> => {
-    const quotation = await QuotationModel.findById(id).populate('customer').populate('lineItems.product').exec();
+    const quotation = await QuotationModel.findById(id)
+      .populate('customer')
+      .populate('lineItems.product')
+      .populate('createdBy', 'firstName lastName')
+      .exec();
     if (!quotation) throw new ApiError(404, 'Quotation not found', 'QUOTATION_NOT_FOUND');
-    if (requester.role === 'sales_rep' && quotation.createdBy.toString() !== requester.id)
+    const createdById = (quotation.createdBy as any)._id
+      ? (quotation.createdBy as any)._id.toString()
+      : quotation.createdBy.toString();
+    if (requester.role === 'sales_rep' && createdById !== requester.id)
       throw new ApiError(403, 'You do not have access to this quotation', 'FORBIDDEN');
     if (requester.role === 'finance' && !['approved', 'pending_approval', 'under_negotiation'].includes(quotation.status))
       throw new ApiError(403, 'Finance can only view submitted or approved quotations', 'FORBIDDEN');
-    return view(quotation);
+
+    // The approval chain lives in its own collection, not embedded on the
+    // quotation -- prefer the currently-open attempt, else fall back to the
+    // most recent one so a decided/returned quotation still shows its history.
+    const approval =
+      (await ApprovalModel.findOne({ quotation: quotation._id, finalStatus: 'pending' })
+        .populate('approvalChain.approver', 'firstName lastName')
+        .exec()) ??
+      (await ApprovalModel.findOne({ quotation: quotation._id })
+        .sort({ createdAt: -1 })
+        .populate('approvalChain.approver', 'firstName lastName')
+        .exec());
+
+    const result = view(quotation);
+    if (approval) {
+      result.approvalSteps = approval.approvalChain.map((step) => {
+        const approver = step.approver as any;
+        return {
+          role: step.approverRole,
+          status: step.status,
+          reason: step.reason,
+          by: approver?._id ? approver._id.toString() : step.approver?.toString(),
+          byName: approver?.firstName ? `${approver.firstName} ${approver.lastName}`.trim() : undefined,
+          at: step.timestamp,
+        };
+      });
+    }
+    return result;
   },
 
   update: async (

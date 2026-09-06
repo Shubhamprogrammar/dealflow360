@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { settingsService } from '@/services/settingsService';
 import { PageHeader, Callout } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
@@ -10,9 +10,34 @@ import { Table, Thead, Th, Tbody, Tr, Td } from '@/components/ui/Table';
 import { inputClassSm } from '@/components/ui/inputClass';
 import type { DiscountConfig } from '@/types';
 
+// A plain number input snaps back to "0" the instant the field is cleared
+// (Number('') === 0), which then has to be deleted before typing the real
+// value. Keeping the on-screen text as local state lets the field sit empty
+// mid-edit and only commits/reverts once the user leaves it.
+function CeilingInput({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+  const [text, setText] = useState(String(value));
+
+  return (
+    <input
+      type="number"
+      value={text}
+      onChange={(e) => {
+        const raw = e.target.value;
+        setText(raw);
+        if (raw !== '' && !Number.isNaN(Number(raw))) onChange(Number(raw));
+      }}
+      onBlur={() => {
+        if (text === '' || Number.isNaN(Number(text))) setText(String(value));
+      }}
+      className={`w-20 ${inputClassSm}`}
+    />
+  );
+}
+
 export default function DiscountApprovalSetupPage() {
   const router = useRouter();
-  const { data } = useQuery({ queryKey: ['discountConfig'], queryFn: settingsService.getDiscountConfig });
+  const queryClient = useQueryClient();
+  const { data, isError, error } = useQuery({ queryKey: ['discountConfig'], queryFn: settingsService.getDiscountConfig });
   const [config, setConfig] = useState<DiscountConfig | null>(null);
   const [seeded, setSeeded] = useState(false);
 
@@ -23,7 +48,18 @@ export default function DiscountApprovalSetupPage() {
 
   const save = useMutation({
     mutationFn: () => settingsService.saveDiscountConfig(config!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['discountConfig'] });
+    },
   });
+
+  if (isError) {
+    return (
+      <p className="px-6 py-8 text-red-600">
+        Failed to load discount configuration: {error instanceof Error ? error.message : 'Unknown error'}
+      </p>
+    );
+  }
 
   if (!config) return <p className="px-6 py-8 text-slate-400">Loading…</p>;
 
@@ -57,18 +93,16 @@ export default function DiscountApprovalSetupPage() {
                     <Td className="font-medium text-slate-900">{t.tier}</Td>
                     <Td>
                       <div className="flex items-center gap-1.5">
-                        <input
-                          type="number"
+                        <CeilingInput
                           value={t.maxDiscountPct}
-                          onChange={(e) =>
+                          onChange={(n) =>
                             setConfig({
                               ...config,
                               tierCeilings: config.tierCeilings.map((x, idx) =>
-                                idx === i ? { ...x, maxDiscountPct: Number(e.target.value) } : x,
+                                idx === i ? { ...x, maxDiscountPct: n } : x,
                               ),
                             })
                           }
-                          className={`w-20 ${inputClassSm}`}
                         />
                         <span className="text-slate-500">%</span>
                       </div>
@@ -92,18 +126,16 @@ export default function DiscountApprovalSetupPage() {
                     <Td className="font-medium text-slate-900">{c.category}</Td>
                     <Td>
                       <div className="flex items-center gap-1.5">
-                        <input
-                          type="number"
+                        <CeilingInput
                           value={c.maxDiscountPct}
-                          onChange={(e) =>
+                          onChange={(n) =>
                             setConfig({
                               ...config,
                               categoryCeilings: config.categoryCeilings.map((x, idx) =>
-                                idx === i ? { ...x, maxDiscountPct: Number(e.target.value) } : x,
+                                idx === i ? { ...x, maxDiscountPct: n } : x,
                               ),
                             })
                           }
-                          className={`w-20 ${inputClassSm}`}
                         />
                         <span className="text-slate-500">%</span>
                       </div>
@@ -137,11 +169,17 @@ export default function DiscountApprovalSetupPage() {
           </Tbody>
         </Table>
 
-        <div className="mt-6 flex flex-wrap gap-3">
+        <div className="mt-6 flex flex-wrap items-center gap-3">
           <Button variant="primary" onClick={() => save.mutate()} disabled={save.isPending}>
-            Save configuration
+            {save.isPending ? 'Saving…' : 'Save configuration'}
           </Button>
           <Button onClick={() => router.back()}>Back</Button>
+          {save.isSuccess && <span className="text-sm font-medium text-emerald-600">Saved.</span>}
+          {save.isError && (
+            <span className="text-sm font-medium text-red-600">
+              Failed to save: {save.error instanceof Error ? save.error.message : 'Unknown error'}
+            </span>
+          )}
         </div>
 
         <div className="mt-6">

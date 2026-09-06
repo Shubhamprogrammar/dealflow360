@@ -67,6 +67,15 @@ export type UpsellSuggestionView = {
   margin: number;
 };
 
+export type QuotationApprovalStepView = {
+  role: string;
+  status: string;
+  reason?: string;
+  by?: string;
+  byName?: string;
+  at?: Date;
+};
+
 export type QuotationView = {
   id: string;
   quoteNumber: string;
@@ -74,7 +83,11 @@ export type QuotationView = {
   customerName: string;
   customerTier: string;
   createdBy: string;
+  createdByName: string;
   sourceInquiry?: string;
+  // Only populated by the approvals queue -- the approval chain lives in a
+  // separate Approval document, not embedded on the quotation itself.
+  approvalSteps?: QuotationApprovalStepView[];
   lineItems: QuotationLineItemView[];
   subtotal: number;
   totalDiscount: number;

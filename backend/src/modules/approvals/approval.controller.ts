@@ -6,7 +6,6 @@ import type { ListQueueQuery } from './approval.types.js';
 export const listQueue = async (req: Request, res: Response): Promise<void> => {
   const { items, pagination } = await approvalService.listQueue(
     req.query as unknown as ListQueueQuery,
-    req.user!,
   );
   sendSuccess(res, 200, 'Approval queue fetched successfully', items, pagination);
 };

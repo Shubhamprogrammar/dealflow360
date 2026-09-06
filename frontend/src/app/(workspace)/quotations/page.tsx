@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Select } from '@/components/ui/Select';
 import { FilterBar, SearchInput, FilterSelect } from '@/components/ui/FilterBar';
 import { statusLabel, statusTone } from '@/lib/statusMeta';
+import { useSession } from '@/lib/hooks/useSession';
 import type { Inquiry, Quotation, QuotationStatus } from '@/types';
 
 const COLUMNS: { key: QuotationStatus; label: string }[] = [
@@ -43,6 +44,8 @@ function total(q: Quotation) {
 export default function QuotationsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { user } = useSession();
+  const canCreateQuotation = user?.role !== 'Admin';
   const [view, setView] = useState<'kanban' | 'table'>('kanban');
   const [showNew, setShowNew] = useState(false);
   const [customerId, setCustomerId] = useState('');
@@ -133,15 +136,17 @@ export default function QuotationsPage() {
       <PageHeader title="Quotations" subtitle="Every quotation in the system, one row per quotation, click a row to open it" />
 
       <div className="mb-6 flex flex-wrap gap-3">
-        <Button variant="primary" onClick={() => setShowNew((v) => !v)}>
-          + New Quotation
-        </Button>
+        {canCreateQuotation && (
+          <Button variant="primary" onClick={() => setShowNew((v) => !v)}>
+            + New Quotation
+          </Button>
+        )}
         <Button onClick={() => setView((v) => (v === 'kanban' ? 'table' : 'kanban'))}>
           Switch to {view === 'kanban' ? 'Table' : 'Kanban'} View
         </Button>
       </div>
 
-      {showNew && (
+      {canCreateQuotation && showNew && (
         <Card className="mb-6 max-w-md">
           <div className="grid gap-3">
             <div className="flex flex-col gap-1.5">

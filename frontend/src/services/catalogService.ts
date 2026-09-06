@@ -1,5 +1,5 @@
 import { api } from '@/lib/api/apiClient';
-import { mapProduct, mapCategory } from '@/lib/mapper/mappers';
+import { mapProduct, reverseCategory } from '@/lib/mapper/mappers';
 import type { Product } from '@/types';
 
 export const catalogService = {
@@ -14,11 +14,12 @@ export const catalogService = {
   save: async (p: Product): Promise<Product> => {
     const body = {
       name: p.name,
-      category: p.category.toLowerCase(),
+      category: reverseCategory(p.category),
       basePrice: p.price,
       costPrice: p.price * 0.5, // Dummy cost price for MVP
       unit: p.unit,
-      taxRate: p.tax,
+      // Backend requires a fraction (0-1), not a percentage.
+      taxRate: p.tax / 100,
       isSubscription: p.isSubscription,
       isActive: p.status === 'Active',
       variants: p.variants.map((v) => ({
@@ -33,9 +34,22 @@ export const catalogService = {
       const res = await api.post<any>('/products', body);
       return mapProduct(res.data);
     } else {
-      // Update
+      // Update. Note: the backend's update schema has no `variants` field --
+      // variants can only be added/edited through the dedicated endpoints
+      // below, once the product already exists.
       const res = await api.put<any>(`/products/${p.id}`, body);
       return mapProduct(res.data);
     }
+  },
+  addVariant: async (
+    productId: string,
+    variant: { attribute: string; value: string; extraPrice: number },
+  ): Promise<Product> => {
+    const res = await api.post<any>(`/products/${productId}/variants`, {
+      attributeName: variant.attribute,
+      attributeValue: variant.value,
+      priceAdjustment: variant.extraPrice,
+    });
+    return mapProduct(res.data);
   },
 };

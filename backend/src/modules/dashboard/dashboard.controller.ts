@@ -4,6 +4,8 @@ import { dashboardService } from './dashboard.service.js';
 import type {
   DeliverySlippageQuery,
   DiscountAnomaliesQuery,
+  EscalateDealInput,
+  NudgeRepInput,
   StalledDealsQuery,
 } from './dashboard.types.js';
 
@@ -29,4 +31,14 @@ export const getDeliverySlippage = async (req: Request, res: Response): Promise<
     req.user!,
   );
   sendSuccess(res, 200, 'Delivery slippage fetched successfully', orders);
+};
+
+export const nudgeRep = async (req: Request, res: Response): Promise<void> => {
+  await dashboardService.nudgeRep(req.body as NudgeRepInput);
+  sendSuccess(res, 200, 'Rep nudged successfully', null);
+};
+
+export const escalateDeal = async (req: Request, res: Response): Promise<void> => {
+  await dashboardService.escalate(req.body as EscalateDealInput);
+  sendSuccess(res, 200, 'Deal escalated successfully', null);
 };

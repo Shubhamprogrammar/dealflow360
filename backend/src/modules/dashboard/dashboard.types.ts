@@ -24,6 +24,7 @@ export type StalledDealView = {
   id: string;
   quoteNumber: string;
   customer: string;
+  customerName: string;
   createdBy: string;
   status: QuotationStatus;
   grandTotal: number;
@@ -35,21 +36,28 @@ export type DiscountAnomalyView = {
   quotation: string;
   quoteNumber: string;
   customer: string;
+  customerName: string;
   status: QuotationStatus;
   lineItem: string;
   product: string;
   discountPercent: number;
   allowedDiscount: number;
   overagePoints: number;
+  flaggedAt: Date;
 };
 
 export type DeliverySlippageView = {
   id: string;
   orderNumber: string;
   customer: string;
+  customerName: string;
+  quotation?: string;
   fulfillmentStatus: string;
   totalAmount: number;
   promisedDeliveryDate: Date;
   daysOverdue: number;
   lastUpdatedAt: Date;
 };
+
+export type NudgeRepInput = { quotationId: string };
+export type EscalateDealInput = { quotationId: string };

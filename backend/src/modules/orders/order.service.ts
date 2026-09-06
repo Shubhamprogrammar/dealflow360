@@ -1,5 +1,6 @@
 import { Types } from 'mongoose';
 import { ApiError } from '../../utils/api-error.js';
+import { buildPagination, toSkip, type Pagination } from '../../utils/pagination.js';
 import { QuotationModel } from '../quotations/quotation.model.js';
 import { WarehouseModel } from '../warehouses/warehouse.model.js';
 import { OrderModel } from './order.model.js';
@@ -7,6 +8,7 @@ import type { OrderDocument, OrderLineItem, WarehouseSplit, Backorder } from './
 import type {
   CreateOrderInput,
   FulfillmentPreview,
+  ListOrdersQuery,
   ManualSplitInput,
   OrderView,
   WarehouseSplitView,
@@ -22,7 +24,10 @@ const view = (order: OrderDocument & { _id: Types.ObjectId }): OrderView => ({
   id: order._id.toString(),
   orderNumber: order.orderNumber,
   quotation: order.quotation?.toString(),
-  customer: order.customer.toString(),
+  customer: (order.customer as any)?._id
+    ? (order.customer as any)._id.toString()
+    : order.customer.toString(),
+  customerName: (order.customer as any)?.companyName,
   lineItems: order.lineItems.map((item) => ({
     id: item._id.toString(),
     product: item.product.toString(),
@@ -33,7 +38,10 @@ const view = (order: OrderDocument & { _id: Types.ObjectId }): OrderView => ({
   })),
   fulfillmentStatus: order.fulfillmentStatus,
   warehouseSplit: order.warehouseSplit.map((split) => ({
-    warehouse: split.warehouse.toString(),
+    warehouse: (split.warehouse as any)?._id
+      ? (split.warehouse as any)._id.toString()
+      : split.warehouse.toString(),
+    warehouseName: (split.warehouse as any)?.name,
     items: split.items.map((item) => ({
       product: item.product.toString(),
       quantity: item.quantity,
@@ -201,6 +209,27 @@ const applySplit = async (
 };
 
 export const orderService = {
+  list: async (
+    query: ListOrdersQuery,
+  ): Promise<{ items: OrderView[]; pagination: Pagination }> => {
+    const filter: Record<string, unknown> = {};
+    if (query.fulfillmentStatus) filter.fulfillmentStatus = query.fulfillmentStatus;
+    if (query.customer) filter.customer = query.customer;
+
+    const [orders, total] = await Promise.all([
+      OrderModel.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(toSkip(query))
+        .limit(query.limit)
+        .populate('customer')
+        .populate('warehouseSplit.warehouse')
+        .exec(),
+      OrderModel.countDocuments(filter).exec(),
+    ]);
+
+    return { items: orders.map(view), pagination: buildPagination(query, total) };
+  },
+
   createFromQuotation: async (input: CreateOrderInput): Promise<OrderView> => {
     const quotation = await QuotationModel.findById(input.quotation).exec();
     if (!quotation) throw new ApiError(404, 'Quotation not found', 'QUOTATION_NOT_FOUND');

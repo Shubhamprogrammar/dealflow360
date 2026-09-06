@@ -7,9 +7,15 @@ import {
   calculateFulfillment,
   confirmFulfillment,
   createOrder,
+  listOrders,
   manualSplit,
 } from './order.controller.js';
-import { createOrderSchema, manualSplitSchema, orderIdSchema } from './order.validation.js';
+import {
+  createOrderSchema,
+  listOrdersSchema,
+  manualSplitSchema,
+  orderIdSchema,
+} from './order.validation.js';
 
 export const orderRoutes = Router();
 
@@ -25,6 +31,7 @@ const canCreateOrder = authorize('sales_rep', 'finance', 'admin');
 orderRoutes.use(authenticate);
 
 orderRoutes.post('/', canCreateOrder, validate(createOrderSchema), asyncHandler(createOrder));
+orderRoutes.get('/', canCreateOrder, validate(listOrdersSchema), asyncHandler(listOrders));
 
 orderRoutes.post(
   '/:id/calculate-fulfillment',

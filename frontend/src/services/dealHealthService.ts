@@ -3,6 +3,12 @@ import { mapStalledDeal, mapDiscountAnomaly, mapDeliverySlippage } from '@/lib/m
 import type { HealthAlert } from '@/types';
 
 export const dealHealthService = {
+  nudgeRep: async (quotationId: string): Promise<void> => {
+    await api.post('/dashboard/nudge-rep', { quotationId });
+  },
+  escalate: async (quotationId: string): Promise<void> => {
+    await api.post('/dashboard/escalate', { quotationId });
+  },
   listAlerts: async (): Promise<HealthAlert[]> => {
     try {
       const [stalledRes, anomaliesRes, slippageRes] = await Promise.all([

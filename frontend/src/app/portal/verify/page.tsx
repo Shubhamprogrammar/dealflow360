@@ -33,7 +33,7 @@ function VerifyInner() {
         const { accessToken, customerId, companyName, redirect } = res.data;
         saveTokens(accessToken);
         saveCustomerSession({ accessToken, customerId, companyName });
-        router.replace(redirect || '/portal');
+        router.replace(redirect || '/portal/catalog');
       })
       .catch(() => setStatus('error'));
   }, [token, router]);

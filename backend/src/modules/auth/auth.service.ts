@@ -26,8 +26,10 @@ const invalidCredentials = (): ApiError =>
   new ApiError(401, 'Invalid email or password', 'INVALID_CREDENTIALS');
 
 // Portal home the verified customer lands on. Kept here so both the API
-// response and any future caller agree on one target.
-const PORTAL_REDIRECT = '/portal';
+// response and any future caller agree on one target. Lands on the catalog
+// rather than "My Quotations" since a brand-new customer has no quotations
+// yet -- the catalog gives them something to actually do first.
+const PORTAL_REDIRECT = '/portal/catalog';
 
 /**
  * Mint a fresh single-use magic-link token for a customer and email the link.

@@ -8,6 +8,8 @@ const baseQuery = {
 };
 
 const emptyBodyAndParams = { body: z.object({}), params: z.object({}), headers };
+const objectId = z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid id');
+const emptyQueryAndParams = { query: z.object({}), params: z.object({}), headers };
 
 export const stalledDealsSchema = z.object({
   ...emptyBodyAndParams,
@@ -31,4 +33,14 @@ export const deliverySlippageSchema = z.object({
     ...baseQuery,
     minOverdueDays: z.coerce.number().int().min(0).max(3650).default(0),
   }),
+});
+
+export const nudgeRepSchema = z.object({
+  ...emptyQueryAndParams,
+  body: z.object({ quotationId: objectId }),
+});
+
+export const escalateSchema = z.object({
+  ...emptyQueryAndParams,
+  body: z.object({ quotationId: objectId }),
 });

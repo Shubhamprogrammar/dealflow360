@@ -36,9 +36,11 @@ export default function DashboardPage() {
       </div>
 
       <div className="mt-6 flex flex-wrap gap-3">
-        <Button variant="primary" onClick={() => router.push('/quotations')}>
-          + New Quotation
-        </Button>
+        {user?.role !== 'Admin' && (
+          <Button variant="primary" onClick={() => router.push('/quotations')}>
+            + New Quotation
+          </Button>
+        )}
         <Button onClick={() => router.push('/approvals')}>View Approvals</Button>
         {user?.role === 'Admin' && (
           <>

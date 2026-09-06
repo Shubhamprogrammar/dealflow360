@@ -1,4 +1,4 @@
-import nodemailer, { type Transporter } from 'nodemailer';
+import nodemailer, { type SMTPTransportOptions, type Transporter } from 'nodemailer';
 import { env } from './env.js';
 import { logger } from './logger.js';
 
@@ -26,7 +26,13 @@ const getTransporter = (): Transporter | null => {
     port: env.SMTP_PORT,
     secure: env.SMTP_SECURE,
     auth: env.SMTP_USER ? { user: env.SMTP_USER, pass: env.SMTP_PASSWORD } : undefined,
-  });
+    // Some networks have a broken/unroutable IPv6 path to Gmail's SMTP
+    // servers, which surfaces as a silent connect ETIMEDOUT rather than a
+    // clear error. Force IPv4 so the connection doesn't even attempt it.
+    // `family` is a real net.connect option nodemailer forwards to the
+    // socket, but it's missing from @types/nodemailer's declarations.
+    family: 4,
+  } as SMTPTransportOptions);
   return transporter;
 };
 

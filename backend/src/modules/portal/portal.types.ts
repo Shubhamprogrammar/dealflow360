@@ -3,6 +3,7 @@ import type { QuotationStatus } from '../../types/domain.types.js';
 export type PortalLineItemView = {
   id: string;
   product: string;
+  productName: string;
   variantId?: string;
   quantity: number;
   unitPrice: number;
