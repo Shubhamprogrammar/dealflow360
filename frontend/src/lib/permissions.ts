@@ -1,8 +1,8 @@
 import type { Role } from '@/types';
 
 // Single source of truth for which internal roles can reach which top-level
-// route. Used both to filter the TopNav tabs (UX) and to guard the routes
-// themselves in the (workspace) layout (enforcement) -- hiding a nav tab is
+// route. Used both to filter the Sidebar nav items (UX) and to guard the routes
+// themselves in the (workspace) layout (enforcement) -- hiding a nav item is
 // not access control on its own.
 export const ROUTE_ROLES: { prefix: string; roles: Role[] }[] = [
   { prefix: '/dashboard', roles: ['Rep', 'SalesManager', 'FinanceOps', 'Admin'] },

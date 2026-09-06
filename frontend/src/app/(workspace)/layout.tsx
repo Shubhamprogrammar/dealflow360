@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { TopNav } from '@/components/layout/TopNav';
+import { Sidebar } from '@/components/layout/Sidebar';
 import { useSession } from '@/lib/hooks/useSession';
 import { isRouteAllowed } from '@/lib/permissions';
 
@@ -48,9 +48,11 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-slate-50">
-      {!shouldHideNav(pathname) && <TopNav />}
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8">{children}</main>
+    <div className="flex min-h-full flex-1 bg-slate-50">
+      {!shouldHideNav(pathname) && <Sidebar />}
+      <main className="min-w-0 flex-1">
+        <div className="mx-auto w-full max-w-7xl px-6 py-8 sm:px-8">{children}</div>
+      </main>
     </div>
   );
 }
