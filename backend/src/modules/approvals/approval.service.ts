@@ -43,7 +43,12 @@ const view = (approval: ApprovalDocument & { _id: Types.ObjectId }): ApprovalVie
 });
 
 const findApproval = async (id: string): Promise<ReturnType<typeof ApprovalModel.hydrate>> => {
-  const approval = await ApprovalModel.findById(id).exec();
+  let approval = await ApprovalModel.findOne({ quotation: id, finalStatus: 'pending' }).exec();
+  if (!approval) {
+    if (Types.ObjectId.isValid(id)) {
+      approval = await ApprovalModel.findById(id).exec();
+    }
+  }
   if (!approval) throw new ApiError(404, 'Approval not found', 'APPROVAL_NOT_FOUND');
   return approval;
 };
@@ -287,7 +292,7 @@ export const approvalService = {
   listQueue: async (
     query: ListQueueQuery,
     requester: Requester,
-  ): Promise<{ items: ApprovalView[]; pagination: Pagination }> => {
+  ): Promise<{ items: QuotationView[]; pagination: Pagination }> => {
     const pending = await ApprovalModel.find({ finalStatus: 'pending' })
       .sort({ createdAt: 1 })
       .exec();
@@ -299,10 +304,20 @@ export const approvalService = {
 
     const total = mine.length;
     const start = (query.page - 1) * query.limit;
-    const items = mine.slice(start, start + query.limit).map(view);
+    const paginatedMine = mine.slice(start, start + query.limit);
+
+    const items = await Promise.all(
+      paginatedMine.map(async (approval) => {
+        try {
+          return await quotationService.getById(approval.quotation.toString(), requester);
+        } catch {
+          return null;
+        }
+      })
+    );
 
     return {
-      items,
+      items: items.filter(Boolean) as QuotationView[],
       pagination: {
         page: query.page,
         limit: query.limit,

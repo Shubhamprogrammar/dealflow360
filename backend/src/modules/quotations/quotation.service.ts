@@ -32,14 +32,18 @@ const isDuplicateKeyError = (error: unknown): boolean =>
 const generateQuoteNumber = (): string =>
   `Q-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
 
-const view = (quotation: QuotationDocument & { _id: Types.ObjectId }): QuotationView => ({
+const view = (quotation: any): QuotationView => ({
   id: quotation._id.toString(),
   quoteNumber: quotation.quoteNumber,
-  customer: quotation.customer.toString(),
-  createdBy: quotation.createdBy.toString(),
-  lineItems: quotation.lineItems.map((item) => ({
+  customer: quotation.customer._id ? quotation.customer._id.toString() : quotation.customer.toString(),
+  customerName: quotation.customer.companyName || 'Unknown Customer',
+  customerTier: quotation.customer.customerTier || 'bronze',
+  createdBy: quotation.createdBy._id ? quotation.createdBy._id.toString() : quotation.createdBy.toString(),
+  lineItems: quotation.lineItems.map((item: any) => ({
     id: item._id.toString(),
-    product: item.product.toString(),
+    product: item.product._id ? item.product._id.toString() : item.product.toString(),
+    productName: item.product.name || 'Unknown Product',
+    productCategory: item.product.category || 'hardware',
     variantId: item.variantId?.toString(),
     quantity: item.quantity,
     unitPrice: item.unitPrice,
@@ -68,8 +72,8 @@ const PRIVILEGED_ROLES: Role[] = ['admin', 'sales_manager'];
 const findOwned = async (
   id: string,
   requester: Requester,
-): Promise<ReturnType<typeof QuotationModel.hydrate>> => {
-  const quotation = await QuotationModel.findById(id).exec();
+): Promise<any> => {
+  const quotation = await QuotationModel.findById(id).populate('customer').populate('lineItems.product').exec();
   if (!quotation) throw new ApiError(404, 'Quotation not found', 'QUOTATION_NOT_FOUND');
   const isOwner = quotation.createdBy.toString() === requester.id;
   if (!isOwner && !PRIVILEGED_ROLES.includes(requester.role))
@@ -193,6 +197,7 @@ export const quotationService = {
           createdBy: requester.id,
           validUntil: input.validUntil ? new Date(input.validUntil) : undefined,
         });
+        await quotation.populate('customer');
         return view(quotation);
       } catch (error) {
         if (!isDuplicateKeyError(error)) throw error;
@@ -219,6 +224,8 @@ export const quotationService = {
         .sort({ createdAt: -1 })
         .skip((query.page - 1) * query.limit)
         .limit(query.limit)
+        .populate('customer')
+        .populate('lineItems.product')
         .exec(),
       QuotationModel.countDocuments(filter).exec(),
     ]);
@@ -235,7 +242,7 @@ export const quotationService = {
   },
 
   getById: async (id: string, requester: Requester): Promise<QuotationView> => {
-    const quotation = await QuotationModel.findById(id).exec();
+    const quotation = await QuotationModel.findById(id).populate('customer').populate('lineItems.product').exec();
     if (!quotation) throw new ApiError(404, 'Quotation not found', 'QUOTATION_NOT_FOUND');
     if (requester.role === 'sales_rep' && quotation.createdBy.toString() !== requester.id)
       throw new ApiError(403, 'You do not have access to this quotation', 'FORBIDDEN');

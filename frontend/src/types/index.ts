@@ -13,6 +13,7 @@ export interface Customer {
   id: string;
   name: string;
   tier: Tier;
+  contactEmail?: string;
 }
 
 export interface Product {
@@ -96,6 +97,12 @@ export interface Quotation {
   requestedDeliveryDate?: string;
   createdAt: string;
   updatedAt: string;
+  // Fields from backend
+  quoteNumber?: string;
+  grandTotal?: number;
+  subtotal?: number;
+  totalDiscount?: number;
+  tax?: number;
 }
 
 export interface Warehouse {
@@ -121,7 +128,7 @@ export interface SplitLine {
 }
 
 export interface FulfillmentOrder {
-  id: string; // quotation id
+  id: string; // order id
   customerName: string;
   status: 'SplitPending' | 'Backorder' | 'Fulfilled';
   warehouses: string[];
@@ -169,4 +176,9 @@ export interface HealthAlert {
 export interface DiscountConfig {
   tierCeilings: TierCeiling[];
   categoryCeilings: CategoryCeiling[];
+}
+
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken?: string;
 }

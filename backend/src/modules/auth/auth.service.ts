@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
+import type { Types } from 'mongoose';
 import argon2 from 'argon2';
 import { env } from '../../config/env.js';
 import { enqueueEmail } from '../../jobs/jobs.js';
@@ -91,6 +92,29 @@ export const authService = {
     return {
       accessToken: signCustomerAccessToken(customer._id.toString()),
       customerId: customer._id.toString(),
+      companyName: customer.companyName,
+    };
+  },
+
+  registerCustomer: async (
+    companyName: string,
+    contactEmail: string,
+    password: string,
+  ): Promise<CustomerSession> => {
+    const existing = await CustomerModel.findOne({ contactEmail: contactEmail.toLowerCase() }).exec();
+    if (existing) throw new ApiError(409, 'A customer with this email already exists', 'CUSTOMER_EXISTS');
+
+    const portalPasswordHash = await argon2.hash(password);
+    const customer = await CustomerModel.create({
+      companyName,
+      contactEmail: contactEmail.toLowerCase(),
+      portalPasswordHash,
+      customerTier: 'bronze',
+    });
+
+    return {
+      accessToken: signCustomerAccessToken((customer._id as Types.ObjectId).toString()),
+      customerId: (customer._id as Types.ObjectId).toString(),
       companyName: customer.companyName,
     };
   },

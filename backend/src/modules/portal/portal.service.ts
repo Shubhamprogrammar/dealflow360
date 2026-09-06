@@ -61,6 +61,14 @@ const findVisible = async (
 };
 
 export const portalService = {
+  listQuotations: async (customerId: string): Promise<PortalQuotationView[]> => {
+    const quotations = await QuotationModel.find({
+      customer: customerId,
+      status: { $in: VISIBLE_STATUSES }
+    }).exec();
+    return quotations.map(view);
+  },
+
   getQuotation: async (id: string, customerId: string): Promise<PortalQuotationView> => {
     const quotation = await findVisible(id, customerId);
     if (quotation.status === 'approved') {

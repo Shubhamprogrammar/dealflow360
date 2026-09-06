@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { quotationService } from '@/services/quotationService';
+import { approvalService } from '@/services/approvalService';
 import { PageHeader, Callout } from '@/components/ui/PageHeader';
 import { Table, Thead, Th, Tbody, Tr, Td } from '@/components/ui/Table';
 import { Badge } from '@/components/ui/Badge';
@@ -17,14 +17,14 @@ export default function ApprovalsPage() {
   const [stageFilter, setStageFilter] = useState<StageFilter>('All');
   const [search, setSearch] = useState('');
   const [riskFilter, setRiskFilter] = useState('All');
-  const { data: quotations = [] } = useQuery({ queryKey: ['quotations'], queryFn: quotationService.list });
+  const { data: quotations = [] } = useQuery({ queryKey: ['approvals'], queryFn: approvalService.queue });
 
   const inApproval = quotations.filter((q) => q.approvalSteps.length > 0);
   const pendingCount = inApproval.filter((q) => q.status === 'PendingApproval').length;
   const returnedCount = quotations.filter((q) => q.status === 'Returned').length;
   const approvedCount = quotations.filter((q) => q.status === 'Approved' || q.status === 'Confirmed').length;
 
-  const rows = quotations.filter((q) => q.approvalSteps.length > 0 || q.status === 'Approved');
+  const rows = quotations;
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();

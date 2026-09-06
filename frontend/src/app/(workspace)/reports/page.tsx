@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { quotationService } from '@/services/quotationService';
+import { reportService } from '@/services/reportService';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { StatTile } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -67,12 +68,26 @@ export default function ReportsPage() {
     return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '—';
   }, [filtered]);
 
-  const handleExportXls = () => {
-    exportToXls(
-      'dealflow360-report',
-      ['Quotation', 'Customer', 'Rep', 'Status', 'Amount', 'Created'],
-      filtered.map((q) => [q.id, q.customerName, q.auditTrail[0]?.user ?? '—', statusLabel[q.status], total(q.lines).toFixed(2), q.createdAt]),
-    );
+  const handleExportXls = async () => {
+    try {
+      const blob = await reportService.exportCsv();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `dealflow360-report-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Export failed', e);
+      // Fallback to local if backend endpoint fails
+      exportToXls(
+        'dealflow360-report',
+        ['Quotation', 'Customer', 'Rep', 'Status', 'Amount', 'Created'],
+        filtered.map((q) => [q.id, q.customerName, q.auditTrail[0]?.user ?? '—', statusLabel[q.status], total(q.lines).toFixed(2), q.createdAt]),
+      );
+    }
   };
 
   return (

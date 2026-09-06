@@ -10,9 +10,11 @@ import {
   refresh,
   requestMagicLink,
   verifyMagicLink,
+  registerCustomer,
 } from './auth.controller.js';
 import {
   customerLoginSchema,
+  customerRegisterSchema,
   loginSchema,
   magicLinkSchema,
   magicLinkTokenSchema,
@@ -33,3 +35,4 @@ authRoutes.get(
   asyncHandler(verifyMagicLink),
 );
 authRoutes.post('/customer/login', validate(customerLoginSchema), asyncHandler(customerLogin));
+authRoutes.post('/customer/register', validate(customerRegisterSchema), asyncHandler(registerCustomer));

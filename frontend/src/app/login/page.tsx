@@ -3,40 +3,76 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from '@/lib/hooks/useSession';
-import { mockLogin } from '@/lib/mock/server';
+import { api, saveTokens } from '@/lib/api/apiClient';
+import { saveCustomerSession } from '@/lib/auth/tokenStore';
 import { Button } from '@/components/ui/Button';
-import type { Role } from '@/types';
-
-const DEMO_ACCOUNTS: { role: Role; email: string; label: string }[] = [
-  { role: 'Rep', email: 'rep@dealflow360.demo', label: 'Sales Rep' },
-  { role: 'SalesManager', email: 'manager@dealflow360.demo', label: 'Sales Manager' },
-  { role: 'FinanceOps', email: 'finance@dealflow360.demo', label: 'Finance / Ops' },
-  { role: 'Admin', email: 'admin@dealflow360.demo', label: 'Admin' },
-];
 
 export default function LoginPage() {
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [tab, setTab] = useState<'staff' | 'customer' | 'signup'>('staff');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
   const { login } = useSession();
   const router = useRouter();
 
-  const doLogin = async (loginEmail: string) => {
-    setSubmitting(true);
+  const handleStaffLogin = async () => {
     try {
-      const user = await mockLogin(loginEmail);
-      login(user);
+      await login(email, password);
       router.push('/dashboard');
-    } finally {
-      setSubmitting(false);
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleCustomerLogin = async () => {
+    try {
+      const res = await api.post<any>('/auth/customer/login', { email, password }, true);
+      saveTokens(res.data.accessToken);
+      saveCustomerSession(res.data);
+      router.push('/portal');
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
+    }
+  };
+
+  const handleCustomerSignup = async () => {
+    try {
+      const res = await api.post<any>('/auth/customer/register', { companyName, email, password }, true);
+      saveTokens(res.data.accessToken);
+      saveCustomerSession(res.data);
+      router.push('/portal');
+    } catch (err: any) {
+      setError(err.message || 'Signup failed');
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
-    doLogin(email);
+    if (!email || !password || (tab === 'signup' && !companyName)) return;
+    
+    setSubmitting(true);
+    setError('');
+    
+    if (tab === 'staff') await handleStaffLogin();
+    else if (tab === 'customer') await handleCustomerLogin();
+    else if (tab === 'signup') await handleCustomerSignup();
+    
+    setSubmitting(false);
+  };
+
+  const doDemoLogin = async (loginEmail: string) => {
+    setSubmitting(true);
+    setEmail(loginEmail);
+    setPassword('dealflow'); // The seeded password in the backend
+    try {
+      await login(loginEmail, 'dealflow');
+      router.push('/dashboard');
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
+      setSubmitting(false);
+    }
   };
 
   const inputClass =
@@ -55,17 +91,25 @@ export default function LoginPage() {
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60 sm:p-8">
           <div className="mb-6 inline-flex w-full rounded-lg bg-slate-100 p-1">
             <button
-              onClick={() => setMode('login')}
-              className={`flex-1 rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
-                mode === 'login' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              onClick={() => { setTab('staff'); setError(''); }}
+              className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                tab === 'staff' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              Log In
+              Staff
             </button>
             <button
-              onClick={() => setMode('signup')}
-              className={`flex-1 rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
-                mode === 'signup' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              onClick={() => { setTab('customer'); setError(''); }}
+              className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                tab === 'customer' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Customer
+            </button>
+            <button
+              onClick={() => { setTab('signup'); setError(''); }}
+              className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                tab === 'signup' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               Sign Up
@@ -73,6 +117,25 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="grid gap-4">
+            {error && (
+              <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 border border-red-200">
+                {error}
+              </div>
+            )}
+            
+            {tab === 'signup' && (
+              <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">
+                Company Name
+                <input
+                  type="text"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  required
+                  placeholder="Acme Corp"
+                  className={inputClass}
+                />
+              </label>
+            )}
             <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">
               Email
               <input
@@ -98,37 +161,30 @@ export default function LoginPage() {
 
             <div className="mt-1 flex items-center justify-between gap-3">
               <Button type="submit" variant="primary" disabled={submitting} className="flex-1">
-                {mode === 'login' ? 'Log In' : 'Create Account'}
+                {tab === 'signup' ? 'Create Account' : 'Log In'}
               </Button>
             </div>
-            <button type="button" className="text-center text-sm text-blue-600 hover:text-blue-700">
-              Forgot password?
-            </button>
+            {tab !== 'signup' && (
+              <button type="button" className="text-center text-sm text-blue-600 hover:text-blue-700">
+                Forgot password?
+              </button>
+            )}
           </form>
 
-          <div className="mt-8 border-t border-slate-100 pt-6">
-            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-slate-400">
-              Demo quick login (internal roles)
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {DEMO_ACCOUNTS.map((acc) => (
-                <button
-                  key={acc.role}
-                  onClick={() => doLogin(acc.email)}
-                  disabled={submitting}
-                  className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 disabled:opacity-40"
-                >
-                  {acc.label}
-                </button>
-              ))}
+          {tab === 'staff' && (
+            <div className="mt-8 border-t border-slate-100 pt-6">
+              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-slate-400">
+                Demo admin login
+              </p>
               <button
-                onClick={() => router.push('/portal')}
-                className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                onClick={() => doDemoLogin('admin@dealflow.com')}
+                disabled={submitting}
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 disabled:opacity-40"
               >
-                Customer Portal
+                Login as Admin (admin@dealflow.com)
               </button>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

@@ -43,6 +43,8 @@ export type Pagination = {
 export type QuotationLineItemView = {
   id: string;
   product: string;
+  productName: string;
+  productCategory: string;
   variantId?: string;
   quantity: number;
   unitPrice: number;
@@ -69,6 +71,8 @@ export type QuotationView = {
   id: string;
   quoteNumber: string;
   customer: string;
+  customerName: string;
+  customerTier: string;
   createdBy: string;
   lineItems: QuotationLineItemView[];
   subtotal: number;

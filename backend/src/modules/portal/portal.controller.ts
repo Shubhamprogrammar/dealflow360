@@ -2,6 +2,11 @@ import type { Request, Response } from 'express';
 import { sendSuccess } from '../../utils/api-response.js';
 import { portalService } from './portal.service.js';
 
+export const getPortalQuotations = async (req: Request, res: Response): Promise<void> => {
+  const quotations = await portalService.listQuotations(req.customer!.id);
+  sendSuccess(res, 200, 'Quotations fetched successfully', quotations);
+};
+
 export const getPortalQuotation = async (req: Request, res: Response): Promise<void> => {
   const quotation = await portalService.getQuotation(req.params.id as string, req.customer!.id);
   sendSuccess(res, 200, 'Quotation fetched successfully', quotation);

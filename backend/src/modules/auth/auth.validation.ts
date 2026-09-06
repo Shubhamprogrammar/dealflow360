@@ -23,3 +23,12 @@ export const magicLinkTokenSchema = z.object({
 });
 
 export const customerLoginSchema = loginSchema;
+
+export const customerRegisterSchema = z.object({
+  ...empty,
+  body: z.object({
+    companyName: z.string().min(2),
+    email: z.string().email(),
+    password: z.string().min(8),
+  }),
+});

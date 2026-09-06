@@ -35,3 +35,17 @@ export const customerLogin = async (req: Request, res: Response): Promise<void> 
   const { email, password } = req.body as { email: string; password: string };
   sendSuccess(res, 200, 'Login successful', await authService.customerLogin(email, password));
 };
+
+export const registerCustomer = async (req: Request, res: Response): Promise<void> => {
+  const { companyName, email, password } = req.body as {
+    companyName: string;
+    email: string;
+    password: string;
+  };
+  sendSuccess(
+    res,
+    201,
+    'Customer account created successfully',
+    await authService.registerCustomer(companyName, email, password),
+  );
+};

@@ -2,19 +2,47 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fulfillmentService } from '@/services/fulfillmentService';
+import { quotationService } from '@/services/quotationService';
+import { api } from '@/lib/api/apiClient';
 import { PageHeader, Callout } from '@/components/ui/PageHeader';
 import { Table, Thead, Th, Tbody, Tr, Td } from '@/components/ui/Table';
 import { Badge } from '@/components/ui/Badge';
 import { FilterBar, SearchInput } from '@/components/ui/FilterBar';
+import { Button } from '@/components/ui/Button';
+import { Select } from '@/components/ui/Select';
 
 export default function FulfillmentPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { data: stock = [] } = useQuery({ queryKey: ['stock'], queryFn: fulfillmentService.listStock });
   const { data: orders = [] } = useQuery({ queryKey: ['fulfillment'], queryFn: fulfillmentService.list });
+  const { data: quotations = [] } = useQuery({ queryKey: ['quotations'], queryFn: quotationService.list });
 
   const [stockSearch, setStockSearch] = useState('');
+  const [selectedQuoteId, setSelectedQuoteId] = useState('');
+
+  const createOrder = useMutation({
+    mutationFn: async () => {
+      const res = await api.post<any>('/orders', { quotationId: selectedQuoteId });
+      return res.data;
+    },
+    onSuccess: (order) => {
+      // Simulate adding to local list since there's no list endpoint
+      fulfillmentService._addLocalOrder({
+        id: order._id || order.id,
+        customerName: order.customerName || 'Unknown',
+        status: 'SplitPending',
+        warehouses: [],
+        suggestedSplit: [],
+        accepted: false,
+      });
+      queryClient.invalidateQueries({ queryKey: ['fulfillment'] });
+      setSelectedQuoteId('');
+      router.push(`/fulfillment/${order._id || order.id}`);
+    }
+  });
 
   const filteredStock = useMemo(() => {
     const q = stockSearch.trim().toLowerCase();
@@ -60,6 +88,30 @@ export default function FulfillmentPage() {
       )}
 
       <h2 className="mt-8 mb-3 text-sm font-semibold text-blue-700">Orders Awaiting Fulfillment</h2>
+      
+      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+        <span className="text-sm font-medium text-slate-700">Convert Confirmed Quote to Order:</span>
+        <Select
+          ariaLabel="Select confirmed quotation"
+          value={selectedQuoteId}
+          onChange={setSelectedQuoteId}
+          options={[
+            { value: '', label: 'Select quotation...' },
+            ...quotations
+              .filter(q => q.status === 'Confirmed')
+              .map(q => ({ value: q.id, label: `${q.customerName} (${q.id})` }))
+          ]}
+          className="flex-1 max-w-xs"
+        />
+        <Button 
+          variant="primary" 
+          disabled={!selectedQuoteId || createOrder.isPending}
+          onClick={() => createOrder.mutate()}
+        >
+          Create Order
+        </Button>
+      </div>
+
       {pendingOrders.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-300 bg-white py-10 text-center">
           <p className="text-sm text-slate-500">Nothing awaiting fulfillment right now.</p>

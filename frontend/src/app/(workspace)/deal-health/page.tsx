@@ -30,7 +30,7 @@ export default function DealHealthPage() {
 
   const stalled = alerts.filter((a) => a.issue.toLowerCase().includes('idle')).length;
   const anomalies = alerts.filter((a) => a.issue.toLowerCase().includes('discount')).length;
-  const slippage = 3; // no delivery-tracking data modeled yet; placeholder count matches wireframe
+  const slippage = alerts.filter((a) => a.issue.toLowerCase().includes('late') || a.issue.toLowerCase().includes('delivery')).length;
 
   const filtered = useMemo(
     () => (severityFilter === 'All' ? alerts : alerts.filter((a) => a.severity === severityFilter)),

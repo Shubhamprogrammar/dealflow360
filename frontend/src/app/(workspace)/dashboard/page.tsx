@@ -41,7 +41,10 @@ export default function DashboardPage() {
         </Button>
         <Button onClick={() => router.push('/approvals')}>View Approvals</Button>
         {user?.role === 'Admin' && (
-          <Button onClick={() => router.push('/settings/discount-approval')}>Go to Back-end</Button>
+          <>
+            <Button onClick={() => router.push('/settings/discount-approval')}>Go to Back-end</Button>
+            <Button onClick={() => router.push('/settings/users')}>Manage Staff</Button>
+          </>
         )}
       </div>
 

@@ -15,6 +15,10 @@ const view = (user: UserDocument & { _id: { toString(): string } }): UserView =>
   updatedAt: user.updatedAt,
 });
 export const userService = {
+  list: async (): Promise<UserView[]> => {
+    const users = await UserModel.find().exec();
+    return users.map(view);
+  },
   create: async (input: CreateUserInput): Promise<UserView> => {
     if (await UserModel.findOne({ email: input.email }).exec())
       throw new ApiError(409, 'Email already exists', 'EMAIL_EXISTS');
