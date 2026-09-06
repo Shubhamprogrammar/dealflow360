@@ -7,7 +7,11 @@ These instructions apply to every change in this repository. Read them before in
 - This is a reusable Node.js backend starter.
 - The stack is Node.js 20+, Express 5, TypeScript, MongoDB, Mongoose, Redis, BullMQ, Socket.IO, JWT, RBAC, Pino, Zod, and Swagger/OpenAPI.
 - The repository intentionally does not contain testing infrastructure, Husky, lint-staged, Docker, Docker Compose, or GitHub Actions workflows. Do not reintroduce them unless the user explicitly requests them.
-- Do not add project-specific integrations such as AWS, Stripe, email providers, Twilio, Puppeteer, or OpenAI unless explicitly required.
+- Do not add project-specific integrations such as AWS, Stripe, Twilio, Puppeteer, or OpenAI unless explicitly required.
+- Email is an approved integration for this project. Use SMTP via `nodemailer` only; do not add hosted email APIs such as SendGrid, SES, Postmark, or Resend.
+  - Transport configuration lives in `src/config/mailer.ts` and is driven by the `SMTP_*` environment variables.
+  - Services must not call `sendMail` directly in a request path. Enqueue with `enqueueEmail` so delivery is retried by the BullMQ worker.
+  - When `SMTP_HOST` is unset the mailer logs and skips sending, so local development works without a mail server.
 
 ## Before Changes
 
@@ -58,6 +62,13 @@ Client -> Route -> Middleware -> Validation -> Controller -> Service -> Mongoose
 - Success responses use `{ success: true, message, data }`.
 - Paginated responses add a `pagination` object containing `page`, `limit`, `total`, and `totalPages`.
 - Error responses use `{ success: false, message, error: { code } }`.
+- Every route must be documented in `src/docs/paths/`, added in the same change as the route itself. A route that does not appear at `/docs` is not finished.
+  - Document the request body, path/query parameters, and every status code the handler can return, including 403 and 422.
+  - Reuse the shared schemas in `src/docs/swagger.ts` (`Error`, `Pagination`, `User`, `Product`, `PriceList`, `DiscountTier`, `Warehouse`, ...) via `$ref` rather than redefining shapes inline; add a new shared schema when a shape is used by more than one route.
+  - Path modules are plain typed objects checked with `satisfies Paths` from `src/docs/openapi.types.ts`, so a mistyped key or an unknown `$ref` fails `npm run typecheck`. `src/docs/swagger.ts` spreads them into `paths`; there is no comment scanning and no `swagger-jsdoc` dependency.
+  - Omit `security` for public endpoints. The Postman generator reads its absence as no-auth.
+  - Run `npm run docs:check` after touching routes. It compares the registered Express routes against the spec and fails on anything undocumented or orphaned.
+  - Run `npm run postman` to regenerate `docs/dealflow360.postman_collection.json` from the spec. The file is generated; edit the path modules, not the JSON.
 - Do not expose stack traces, database internals, secrets, passwords, JWTs, refresh tokens, or sensitive implementation details.
 
 ## Authentication and Authorization

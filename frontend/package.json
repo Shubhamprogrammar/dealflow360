@@ -1,5 +1,5 @@
 {
-  "name": "scafolder",
+  "name": "frontend",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -11,6 +11,9 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^5.9.1",
     "@reduxjs/toolkit": "^2.12.0",
     "@tanstack/react-query": "^5.102.8",
@@ -24,6 +27,7 @@
     "zod": "^4.5.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^7.0.1",

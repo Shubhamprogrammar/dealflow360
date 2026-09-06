@@ -19,4 +19,6 @@ The API is under `/api/v1`; health is `/api/v1/health`, readiness is `/api/v1/re
 
 Start MongoDB and Redis separately, then configure connection URLs in `.env`. Configure seed credentials only through environment variables.
 
+Creating a quotation queues an SMTP email to the selected customer's contact email. The background worker generates and attaches a professional draft quotation PDF; when `SMTP_HOST` is unset, delivery is logged and skipped for local development.
+
 See `ARCHITECTURE.md`, `API_GUIDELINES.md`, and `CONTRIBUTING.md` for operating conventions.

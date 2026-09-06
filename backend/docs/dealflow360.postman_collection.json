@@ -1,0 +1,3267 @@
+{
+  "info": {
+    "name": "DealFlow360 API v1.0.0",
+    "description": "Quote-to-cash backend. Staff routes use bearer auth; customer portal routes issue a separate token type that staff routes reject.\n\nGenerated from the OpenAPI spec by `npm run postman` — edit the route JSDoc, not this file.\n\nRun \"Staff login\" first: it stores accessToken, which every secured request sends automatically. Ids captured from create and list responses (productId, priceListId, userId, variantId) feed the path variables of later requests.\n\nAll responses are wrapped as { success, message, data, pagination? }.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Staff and customer authentication",
+      "item": [
+        {
+          "name": "Staff login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Staff login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@dealflow.com\",\n  \"password\": \"dealflow\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data.accessToken) {",
+                  "  pm.collectionVariables.set('accessToken', body.data.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', body.data.refreshToken || '');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Exchange a refresh token for a new access token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "Exchange a refresh token for a new access token",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data.accessToken) pm.collectionVariables.set('accessToken', body.data.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "The currently signed-in staff user",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "The currently signed-in staff user"
+          },
+          "response": []
+        },
+        {
+          "name": "Client-side logout (tokens are stateless and are not revoked)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Client-side logout (tokens are stateless and are not revoked)",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Email a customer a one-time portal link",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/customer/magic-link",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "customer",
+                "magic-link"
+              ]
+            },
+            "description": "Email a customer a one-time portal link\n\nAlways returns 202, including for unknown emails, so the endpoint cannot be used to enumerate customers.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"buyer@acme.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Redeem a magic-link token for a customer session",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/customer/verify/:token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "customer",
+                "verify",
+                ":token"
+              ],
+              "variable": [
+                {
+                  "key": "token",
+                  "value": "{{magicLinkToken}}"
+                }
+              ]
+            },
+            "description": "Redeem a magic-link token for a customer session\n\nSingle use. The stored token is cleared on success, so replaying it returns 401.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data.accessToken) pm.collectionVariables.set('customerToken', body.data.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Customer portal password login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/customer/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "customer",
+                "login"
+              ]
+            },
+            "description": "Customer portal password login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"buyer@acme.com\",\n  \"password\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data.accessToken) pm.collectionVariables.set('customerToken', body.data.accessToken);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "description": "Internal user management",
+      "item": [
+        {
+          "name": "Create an internal user (admin only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            },
+            "description": "Create an internal user (admin only)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Priya\",\n  \"lastName\": \"Sharma\",\n  \"email\": \"priya@dealflow.com\",\n  \"password\": \"password123\",\n  \"role\": \"admin\",\n  \"team\": \"West\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const id = body.data && (body.data._id || body.data.id);",
+                  "if (id) pm.collectionVariables.set('userId', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fetch one user",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{userId}}"
+                }
+              ]
+            },
+            "description": "Fetch one user"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "description": "Catalogue and variants",
+      "item": [
+        {
+          "name": "List products, paginated",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "category",
+                  "value": "hardware",
+                  "disabled": true
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Case-insensitive name match",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List products, paginated"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const first = (pm.response.json().data || [])[0];",
+                  "if (first && first._id) pm.collectionVariables.set('productId', first._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create a product (admin, sales_manager)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products"
+              ]
+            },
+            "description": "Create a product (admin, sales_manager)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Laptop\",\n  \"category\": \"hardware\",\n  \"basePrice\": 1200,\n  \"costPrice\": 800,\n  \"unit\": \"unit\",\n  \"taxRate\": 0.1,\n  \"description\": \"string\",\n  \"maxDiscountByCategory\": 0,\n  \"isSubscription\": true,\n  \"variants\": [\n    {\n      \"attributeName\": \"Size\",\n      \"attributeValue\": \"Large\",\n      \"priceAdjustment\": 50\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const id = body.data && (body.data._id || body.data.id);",
+                  "if (id) pm.collectionVariables.set('productId', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fetch one product, including deactivated ones",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{productId}}"
+                }
+              ]
+            },
+            "description": "Fetch one product, including deactivated ones"
+          },
+          "response": []
+        },
+        {
+          "name": "Partially update a product (admin, sales_manager)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/products/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{productId}}"
+                }
+              ]
+            },
+            "description": "Partially update a product (admin, sales_manager)\n\nSend only changed fields; at least one is required. The pricing check runs against the merged product.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Laptop\",\n  \"category\": \"hardware\",\n  \"basePrice\": 1200,\n  \"costPrice\": 800,\n  \"unit\": \"unit\",\n  \"taxRate\": 0.1,\n  \"description\": \"string\",\n  \"maxDiscountByCategory\": 0,\n  \"isSubscription\": true,\n  \"variants\": [\n    {\n      \"attributeName\": \"Size\",\n      \"attributeValue\": \"Large\",\n      \"priceAdjustment\": 50\n    }\n  ],\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Deactivate a product (soft delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{productId}}"
+                }
+              ]
+            },
+            "description": "Deactivate a product (soft delete)\n\nSets isActive to false. Quotations and orders reference products, so records are never destroyed."
+          },
+          "response": []
+        },
+        {
+          "name": "Add a variant (admin, sales_manager)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/products/:id/variants",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products",
+                ":id",
+                "variants"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{productId}}"
+                }
+              ]
+            },
+            "description": "Add a variant (admin, sales_manager)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"attributeName\": \"Size\",\n  \"attributeValue\": \"Large\",\n  \"priceAdjustment\": 50\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const variants = (body.data && body.data.variants) || [];",
+                  "const last = variants[variants.length - 1];",
+                  "if (last && last._id) pm.collectionVariables.set('variantId', last._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update one variant (admin, sales_manager)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/products/:id/variants/:variantId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products",
+                ":id",
+                "variants",
+                ":variantId"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{productId}}"
+                },
+                {
+                  "key": "variantId",
+                  "value": "{{variantId}}"
+                }
+              ]
+            },
+            "description": "Update one variant (admin, sales_manager)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"attributeName\": \"Size\",\n  \"attributeValue\": \"Large\",\n  \"priceAdjustment\": 50\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Price Lists",
+      "description": "Tier-specific pricing",
+      "item": [
+        {
+          "name": "List price lists, paginated, with products populated",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/pricelists",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pricelists"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "customerTier",
+                  "value": "bronze",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List price lists, paginated, with products populated"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const first = (pm.response.json().data || [])[0];",
+                  "if (first && first._id) pm.collectionVariables.set('priceListId', first._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create a price list (admin, sales_manager)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pricelists",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pricelists"
+              ]
+            },
+            "description": "Create a price list (admin, sales_manager)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Gold 2026\",\n  \"customerTier\": \"gold\",\n  \"currency\": \"INR\",\n  \"productPrices\": [\n    {\n      \"product\": \"{{productId}}\",\n      \"customPrice\": 1000\n    }\n  ],\n  \"validFrom\": \"2026-01-01T00:00:00.000Z\",\n  \"validTo\": \"2026-12-31T23:59:59.000Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const id = body.data && (body.data._id || body.data.id);",
+                  "if (id) pm.collectionVariables.set('priceListId', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "The price list currently in effect for a tier",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/pricelists/tier/:tierName",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pricelists",
+                "tier",
+                ":tierName"
+              ],
+              "variable": [
+                {
+                  "key": "tierName",
+                  "value": "{{tierName}}"
+                }
+              ]
+            },
+            "description": "The price list currently in effect for a tier\n\nFilters on the validFrom/validTo window and treats undated lists as always valid. Expired lists are not returned."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Discount Tiers",
+      "description": "Discount limits and approval chain configuration",
+      "item": [
+        {
+          "name": "List discount tiers, paginated",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/discount-tiers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "discount-tiers"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "tierName",
+                  "value": "bronze",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List discount tiers, paginated"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const first = (pm.response.json().data || [])[0];",
+                  "if (first && first._id) pm.collectionVariables.set('discountTierId', first._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create a discount tier (admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/discount-tiers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "discount-tiers"
+              ]
+            },
+            "description": "Create a discount tier (admin)\n\ntierName is stored lowercase so quotation risk scoring can look the tier up by the customer tier.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tierName\": \"bronze\",\n  \"maxDiscountPercent\": 5,\n  \"categorySpecificLimits\": [\n    {\n      \"category\": \"hardware\",\n      \"maxDiscount\": 10\n    }\n  ],\n  \"approvalChain\": [\n    {\n      \"minDiscount\": 10,\n      \"maxDiscount\": 20,\n      \"requiredApprovers\": [\n        \"admin\"\n      ]\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const id = body.data && (body.data._id || body.data.id);",
+                  "if (id) pm.collectionVariables.set('discountTierId', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Partially update a discount tier (admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/discount-tiers/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "discount-tiers",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{discountTierId}}"
+                }
+              ]
+            },
+            "description": "Partially update a discount tier (admin)\n\nSend only changed fields; at least one is required.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tierName\": \"bronze\",\n  \"maxDiscountPercent\": 5,\n  \"categorySpecificLimits\": [\n    {\n      \"category\": \"hardware\",\n      \"maxDiscount\": 10\n    }\n  ],\n  \"approvalChain\": [\n    {\n      \"minDiscount\": 10,\n      \"maxDiscount\": 20,\n      \"requiredApprovers\": [\n        \"admin\"\n      ]\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete a discount tier (admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/discount-tiers/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "discount-tiers",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{discountTierId}}"
+                }
+              ]
+            },
+            "description": "Delete a discount tier (admin)\n\nHard delete. Tiers are resolved by name at scoring time rather than referenced by id, so no records are left dangling."
+          },
+          "response": []
+        },
+        {
+          "name": "Replace the category-specific discount limits (admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/discount-tiers/:id/category-limits",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "discount-tiers",
+                ":id",
+                "category-limits"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{discountTierId}}"
+                }
+              ]
+            },
+            "description": "Replace the category-specific discount limits (admin)\n\nA category limit may deliberately exceed the tier maxDiscountPercent, so the two are not cross-checked.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categorySpecificLimits\": [\n    {\n      \"category\": \"hardware\",\n      \"maxDiscount\": 10\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Replace the approval chain rules (admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/discount-tiers/:id/approval-chain",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "discount-tiers",
+                ":id",
+                "approval-chain"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{discountTierId}}"
+                }
+              ]
+            },
+            "description": "Replace the approval chain rules (admin)\n\nRanges are inclusive and must not overlap, so the rule matched for a risk score does not depend on array order.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"approvalChain\": [\n    {\n      \"minDiscount\": 10,\n      \"maxDiscount\": 20,\n      \"requiredApprovers\": [\n        \"admin\"\n      ]\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Warehouses",
+      "description": "Warehouse setup and stock levels",
+      "item": [
+        {
+          "name": "List warehouses, paginated",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/warehouses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "warehouses"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Case-insensitive name match",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List warehouses, paginated"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const list = pm.response.json().data || [];",
+                  "if (list[0] && list[0]._id) pm.collectionVariables.set('warehouseId', list[0]._id);",
+                  "if (list[0] && list[0]._id) pm.collectionVariables.set('fromWarehouseId', list[0]._id);",
+                  "if (list[1] && list[1]._id) pm.collectionVariables.set('toWarehouseId', list[1]._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create a warehouse (admin, sales_manager)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/warehouses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "warehouses"
+              ]
+            },
+            "description": "Create a warehouse (admin, sales_manager)\n\nStock is managed through the stock endpoints, not at creation time.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Main Warehouse\",\n  \"location\": \"Pune\",\n  \"shippingCostWeight\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const id = body.data && (body.data._id || body.data.id);",
+                  "if (id) pm.collectionVariables.set('warehouseId', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Transfer stock between warehouses (admin, sales_manager)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/warehouses/transfer",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "warehouses",
+                "transfer"
+              ]
+            },
+            "description": "Transfer stock between warehouses (admin, sales_manager)\n\nThe source is debited by a single conditional update that cannot oversell, and a failed credit returns the stock, so no transaction is required.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromWarehouse\": \"{{fromWarehouseId}}\",\n  \"toWarehouse\": \"{{toWarehouseId}}\",\n  \"product\": \"{{productId}}\",\n  \"quantity\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Partially update a warehouse (admin, sales_manager)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/warehouses/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "warehouses",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{warehouseId}}"
+                }
+              ]
+            },
+            "description": "Partially update a warehouse (admin, sales_manager)\n\nSend only changed fields; at least one is required.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Main Warehouse\",\n  \"location\": \"Pune\",\n  \"shippingCostWeight\": 1,\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add or replace a stock level (admin, sales_manager)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/warehouses/:id/stock",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "warehouses",
+                ":id",
+                "stock"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{warehouseId}}"
+                }
+              ]
+            },
+            "description": "Add or replace a stock level (admin, sales_manager)\n\nUpsert on the product: quantity is absolute, not additive. Returns 201 when the product had no stock line yet, 200 when an existing line was replaced.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product\": \"{{productId}}\",\n  \"quantity\": 10,\n  \"reorderPoint\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get the stock level for one product",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/warehouses/:id/stock/:productId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "warehouses",
+                ":id",
+                "stock",
+                ":productId"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{warehouseId}}"
+                },
+                {
+                  "key": "productId",
+                  "value": "{{productId}}"
+                }
+              ]
+            },
+            "description": "Get the stock level for one product"
+          },
+          "response": []
+        },
+        {
+          "name": "Adjust a stock level (admin, sales_manager)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/warehouses/:id/stock/:productId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "warehouses",
+                ":id",
+                "stock",
+                ":productId"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{warehouseId}}"
+                },
+                {
+                  "key": "productId",
+                  "value": "{{productId}}"
+                }
+              ]
+            },
+            "description": "Adjust a stock level (admin, sales_manager)\n\nSupply exactly one of quantity (absolute) or adjustment (signed delta). reorderPoint may accompany either.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"adjustment\": -3,\n  \"reorderPoint\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Subscription Plans",
+      "description": "Billing cycles, proration and cancellation",
+      "item": [
+        {
+          "name": "List subscription plans, paginated",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/subscription-plans",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subscription-plans"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "billingCycle",
+                  "value": "monthly",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List subscription plans, paginated"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const first = (pm.response.json().data || [])[0];",
+                  "if (first && first._id) pm.collectionVariables.set('subscriptionPlanId', first._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create a subscription plan (admin, sales_manager)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/subscription-plans",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subscription-plans"
+              ]
+            },
+            "description": "Create a subscription plan (admin, sales_manager)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Monthly Standard\",\n  \"billingCycle\": \"monthly\",\n  \"billingIntervalDays\": 30,\n  \"prorationRules\": {\n    \"onUpgrade\": \"immediate\",\n    \"onDowngrade\": \"next_cycle\"\n  },\n  \"cancellationPolicy\": {\n    \"refundType\": \"prorated\",\n    \"effectiveDate\": \"end_of_period\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const id = body.data && (body.data._id || body.data.id);",
+                  "if (id) pm.collectionVariables.set('subscriptionPlanId', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Partially update a subscription plan (admin, sales_manager)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/subscription-plans/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subscription-plans",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{subscriptionPlanId}}"
+                }
+              ]
+            },
+            "description": "Partially update a subscription plan (admin, sales_manager)\n\nSend only changed fields; at least one is required.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Monthly Standard\",\n  \"billingCycle\": \"monthly\",\n  \"billingIntervalDays\": 30,\n  \"prorationRules\": {\n    \"onUpgrade\": \"immediate\",\n    \"onDowngrade\": \"next_cycle\"\n  },\n  \"cancellationPolicy\": {\n    \"refundType\": \"prorated\",\n    \"effectiveDate\": \"end_of_period\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Replace the proration rules (admin, sales_manager)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/subscription-plans/:id/proration",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subscription-plans",
+                ":id",
+                "proration"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{subscriptionPlanId}}"
+                }
+              ]
+            },
+            "description": "Replace the proration rules (admin, sales_manager)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"onUpgrade\": \"immediate\",\n  \"onDowngrade\": \"next_cycle\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Replace the cancellation policy (admin, sales_manager)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/subscription-plans/:id/cancellation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subscription-plans",
+                ":id",
+                "cancellation"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{subscriptionPlanId}}"
+                }
+              ]
+            },
+            "description": "Replace the cancellation policy (admin, sales_manager)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refundType\": \"prorated\",\n  \"effectiveDate\": \"end_of_period\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Customers",
+      "description": "Customer records and rep assignment",
+      "item": [
+        {
+          "name": "List customers, paginated",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/customers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "customerTier",
+                  "value": "bronze",
+                  "disabled": true
+                },
+                {
+                  "key": "assignedRep",
+                  "value": "",
+                  "description": "24-hex user id",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List customers, paginated"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const first = (pm.response.json().data || [])[0];",
+                  "if (first && first._id) pm.collectionVariables.set('customerId', first._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create a customer (admin, sales_manager, sales_rep)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/customers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers"
+              ]
+            },
+            "description": "Create a customer (admin, sales_manager, sales_rep)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyName\": \"Acme Corp\",\n  \"contactEmail\": \"buyer@acme.com\",\n  \"contactName\": \"Alex Buyer\",\n  \"customerTier\": \"bronze\",\n  \"creditScore\": 700,\n  \"paymentTerms\": \"Net 30\",\n  \"assignedRep\": \"{{salesRepId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const id = body.data && (body.data._id || body.data.id);",
+                  "if (id) pm.collectionVariables.set('customerId', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fetch one customer",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/customers/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{customerId}}"
+                }
+              ]
+            },
+            "description": "Fetch one customer\n\nPortal credentials and magic-link fields are never returned."
+          },
+          "response": []
+        },
+        {
+          "name": "Partially update a customer (admin, sales_manager, sales_rep)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/customers/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{customerId}}"
+                }
+              ]
+            },
+            "description": "Partially update a customer (admin, sales_manager, sales_rep)\n\nSend only changed fields; at least one is required.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyName\": \"Acme Corp\",\n  \"contactEmail\": \"buyer@acme.com\",\n  \"contactName\": \"Alex Buyer\",\n  \"customerTier\": \"bronze\",\n  \"creditScore\": 700,\n  \"paymentTerms\": \"Net 30\",\n  \"assignedRep\": \"{{salesRepId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Assign a sales rep to a customer (admin, sales_manager)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/customers/:id/assign-rep",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers",
+                ":id",
+                "assign-rep"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{customerId}}"
+                }
+              ]
+            },
+            "description": "Assign a sales rep to a customer (admin, sales_manager)\n\nThe target user must be an active sales_rep.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assignedRep\": \"{{salesRepId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "description": "Sales, product and approval analytics",
+      "item": [
+        {
+          "name": "Sales summary (admin, sales_manager, finance)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/sales",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "sales"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "",
+                  "description": "Inclusive lower bound on createdAt, ISO 8601.",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "description": "Inclusive upper bound on createdAt, ISO 8601.",
+                  "disabled": true
+                },
+                {
+                  "key": "rep",
+                  "value": "",
+                  "description": "24-hex user id",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "draft",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Sales summary (admin, sales_manager, finance)\n\nQuotation totals and a per-status breakdown for the period. Order totals are narrowed by the period only, since orders carry no rep or quotation status."
+          },
+          "response": []
+        },
+        {
+          "name": "Product performance (admin, sales_manager, finance)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "",
+                  "description": "Inclusive lower bound on createdAt, ISO 8601.",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "description": "Inclusive upper bound on createdAt, ISO 8601.",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Product performance (admin, sales_manager, finance)\n\nUnits and revenue per product, measured on orders rather than quotations, so unconverted quotes are excluded. Sorted by revenue descending."
+          },
+          "response": []
+        },
+        {
+          "name": "Approval metrics (admin, sales_manager, finance)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/approvals",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "approvals"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "",
+                  "description": "Inclusive lower bound on createdAt, ISO 8601.",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "description": "Inclusive upper bound on createdAt, ISO 8601.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Approval metrics (admin, sales_manager, finance)"
+          },
+          "response": []
+        },
+        {
+          "name": "Export the sales report as CSV (admin, sales_manager, finance)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/export",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "export"
+              ],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "csv",
+                  "description": "Only csv is supported.",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "",
+                  "description": "Inclusive lower bound on createdAt, ISO 8601.",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "description": "Inclusive upper bound on createdAt, ISO 8601.",
+                  "disabled": true
+                },
+                {
+                  "key": "rep",
+                  "value": "",
+                  "description": "24-hex user id",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "draft",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Export the sales report as CSV (admin, sales_manager, finance)\n\nReturns one row per quotation matching the same filters as /reports/sales, as a text/csv attachment rather than the usual JSON envelope."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Audit Logs",
+      "description": "Recorded create, update and delete activity",
+      "item": [
+        {
+          "name": "List audit logs, paginated (admin, finance)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/audit-logs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audit-logs"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "entityType",
+                  "value": "quotation",
+                  "disabled": true
+                },
+                {
+                  "key": "entityId",
+                  "value": "",
+                  "description": "24-hex id of the affected record",
+                  "disabled": true
+                },
+                {
+                  "key": "action",
+                  "value": "created",
+                  "disabled": true
+                },
+                {
+                  "key": "performedBy",
+                  "value": "",
+                  "description": "24-hex user id",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "",
+                  "description": "Inclusive lower bound on timestamp, ISO 8601.",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "description": "Inclusive upper bound on timestamp, ISO 8601.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List audit logs, paginated (admin, finance)\n\nNewest first. Entries are written by middleware on every successful create, update and delete of a quotation, approval, order, invoice, product or customer."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Quotations",
+      "description": "Quotation building, risk scoring, and submission",
+      "item": [
+        {
+          "name": "List quotations visible to the current staff user",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/quotations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "quotations"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "customer",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List quotations visible to the current staff user"
+          },
+          "response": []
+        },
+        {
+          "name": "Create a draft quotation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/quotations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "quotations"
+              ]
+            },
+            "description": "Create a draft quotation",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer\": \"{{productId}}\",\n  \"validUntil\": \"2026-01-01T00:00:00.000Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Fetch one quotation",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/quotations/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "quotations",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "Fetch one quotation"
+          },
+          "response": []
+        },
+        {
+          "name": "Update a draft quotation",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/quotations/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "quotations",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "Update a draft quotation",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"validUntil\": \"2026-01-01T00:00:00.000Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete a draft quotation",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/quotations/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "quotations",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "Delete a draft quotation"
+          },
+          "response": []
+        },
+        {
+          "name": "Add a line item to a draft quotation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/quotations/:id/line-items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "quotations",
+                ":id",
+                "line-items"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "Add a line item to a draft quotation",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product\": \"{{productId}}\",\n  \"variantId\": \"{{productId}}\",\n  \"quantity\": 1,\n  \"discountPercent\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update a quotation line item",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/quotations/:id/line-items/:itemId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "quotations",
+                ":id",
+                "line-items",
+                ":itemId"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                },
+                {
+                  "key": "itemId",
+                  "value": "{{itemId}}"
+                }
+              ]
+            },
+            "description": "Update a quotation line item",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 1,\n  \"discountPercent\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Remove a quotation line item",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/quotations/:id/line-items/:itemId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "quotations",
+                ":id",
+                "line-items",
+                ":itemId"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                },
+                {
+                  "key": "itemId",
+                  "value": "{{itemId}}"
+                }
+              ]
+            },
+            "description": "Remove a quotation line item"
+          },
+          "response": []
+        },
+        {
+          "name": "Calculate discount risk for a draft quotation",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/quotations/:id/calculate-risk",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "quotations",
+                ":id",
+                "calculate-risk"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "Calculate discount risk for a draft quotation"
+          },
+          "response": []
+        },
+        {
+          "name": "Submit a quotation for approval",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/quotations/:id/submit-approval",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "quotations",
+                ":id",
+                "submit-approval"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "Submit a quotation for approval"
+          },
+          "response": []
+        },
+        {
+          "name": "Get upsell suggestions for a quotation",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/quotations/:id/upsell-suggestions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "quotations",
+                ":id",
+                "upsell-suggestions"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "Get upsell suggestions for a quotation"
+          },
+          "response": []
+        },
+        {
+          "name": "Respond to a customer's negotiation request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/quotations/:id/respond-negotiation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "quotations",
+                ":id",
+                "respond-negotiation"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "Respond to a customer's negotiation request\n\nOptionally adjusts line-item discounts and always records a rep response. Re-checks the risk score and re-routes through approval if the new terms now require it.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lineItems\": [\n    {\n      \"itemId\": \"{{productId}}\",\n      \"discountPercent\": 0\n    }\n  ],\n  \"repResponse\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Approvals",
+      "description": "Approval queue and approval decisions",
+      "item": [
+        {
+          "name": "List approvals assigned to the current approver",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/approvals/queue",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "approvals",
+                "queue"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List approvals assigned to the current approver"
+          },
+          "response": []
+        },
+        {
+          "name": "Approve the current approval step",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/approvals/:id/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "approvals",
+                ":id",
+                "approve"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "Approve the current approval step",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reject an approval request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/approvals/:id/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "approvals",
+                ":id",
+                "reject"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "Reject an approval request",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Request quotation revision",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/approvals/:id/request-revision",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "approvals",
+                ":id",
+                "request-revision"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "Request quotation revision",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "description": "Order fulfillment allocation",
+      "item": [
+        {
+          "name": "Convert a customer-confirmed quotation to an order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ]
+            },
+            "description": "Convert a customer-confirmed quotation to an order",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quotation\": \"{{productId}}\",\n  \"promisedDeliveryDate\": \"2026-01-01T00:00:00.000Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const id = body.data && (body.data._id || body.data.id);",
+                  "if (id) pm.collectionVariables.set('orderId', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Preview the automatic warehouse fulfillment split",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders/:id/calculate-fulfillment",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders",
+                ":id",
+                "calculate-fulfillment"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "Preview the automatic warehouse fulfillment split"
+          },
+          "response": []
+        },
+        {
+          "name": "Confirm the automatic warehouse fulfillment split",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders/:id/confirm-fulfillment",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders",
+                ":id",
+                "confirm-fulfillment"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "Confirm the automatic warehouse fulfillment split"
+          },
+          "response": []
+        },
+        {
+          "name": "Apply a manual warehouse fulfillment split",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orders/:id/manual-split",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders",
+                ":id",
+                "manual-split"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "Apply a manual warehouse fulfillment split",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"warehouseSplit\": [\n    {\n      \"warehouse\": \"{{fromWarehouseId}}\",\n      \"items\": [\n        {\n          \"product\": \"{{productId}}\",\n          \"quantity\": 1\n        }\n      ]\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Invoices",
+      "description": "One-time invoicing and payment tracking",
+      "item": [
+        {
+          "name": "Generate an invoice for an order’s one-time items",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/invoices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invoices"
+              ]
+            },
+            "description": "Generate an invoice for an order’s one-time items",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order\": \"{{orderId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const id = body.data && (body.data._id || body.data.id);",
+                  "if (id) pm.collectionVariables.set('invoiceId', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mark an invoice as paid",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/invoices/:id/payment",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invoices",
+                ":id",
+                "payment"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{invoiceId}}"
+                }
+              ]
+            },
+            "description": "Mark an invoice as paid",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paidDate\": \"2026-01-01T00:00:00.000Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Subscriptions",
+      "description": "Subscription lifecycle, proration and recurring billing",
+      "item": [
+        {
+          "name": "Create a subscription from an order’s subscription line item",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/subscriptions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subscriptions"
+              ]
+            },
+            "description": "Create a subscription from an order’s subscription line item",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order\": \"{{orderId}}\",\n  \"plan\": \"{{subscriptionPlanId}}\",\n  \"startDate\": \"2026-01-01T00:00:00.000Z\",\n  \"product\": \"{{productId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const id = body.data && (body.data._id || body.data.id);",
+                  "if (id) pm.collectionVariables.set('subscriptionId', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Prorate a subscription for a mid-cycle quantity change",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/subscriptions/:id/prorate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subscriptions",
+                ":id",
+                "prorate"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{subscriptionId}}"
+                }
+              ]
+            },
+            "description": "Prorate a subscription for a mid-cycle quantity change",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newQuantity\": 2,\n  \"changeDate\": \"2026-01-01T00:00:00.000Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Enqueue the recurring billing run for all due subscriptions",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/subscriptions/generate-invoices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subscriptions",
+                "generate-invoices"
+              ]
+            },
+            "description": "Enqueue the recurring billing run for all due subscriptions\n\nEnqueues a BullMQ job rather than running the billing sweep inline; the actual invoice generation happens asynchronously in the background worker."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Portal",
+      "description": "Customer-facing quotation viewing and negotiation",
+      "item": [
+        {
+          "name": "Customer: view one of the customer's own quotations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/portal/quotations/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "portal",
+                "quotations",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "Customer: view one of the customer's own quotations\n\nRequires a customer bearer token (from the magic-link or portal-login flow), not a staff token. Only visible once the quotation has cleared internal approval. The response omits margin, risk score, and approval fields entirely."
+          },
+          "response": []
+        },
+        {
+          "name": "Customer: add comments or propose a counter-discount",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/portal/quotations/:id/request-changes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "portal",
+                "quotations",
+                ":id",
+                "request-changes"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "Customer: add comments or propose a counter-discount",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comments\": [\n    {\n      \"lineItemIndex\": 0,\n      \"comment\": \"string\"\n    }\n  ],\n  \"counterDiscountProposal\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Customer: confirm the quotation as-is",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/portal/quotations/:id/confirm",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "portal",
+                "quotations",
+                ":id",
+                "confirm"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{id}}"
+                }
+              ]
+            },
+            "description": "Customer: confirm the quotation as-is\n\nMarks the quotation confirmed. Does not create an order."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "description": "Deal health and operational risk indicators",
+      "item": [
+        {
+          "name": "List stalled deals",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/stalled-deals",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard",
+                "stalled-deals"
+              ],
+              "query": [
+                {
+                  "key": "asOf",
+                  "value": "",
+                  "description": "Optional ISO 8601 timestamp used as the dashboard clock.",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "100",
+                  "description": "Maximum number of results to return.",
+                  "disabled": true
+                },
+                {
+                  "key": "staleDays",
+                  "value": "7",
+                  "description": "Number of inactive days before a quotation is stalled.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List stalled deals\n\nReturns active quotations whose updatedAt is older than staleDays. Sales reps see their own quotations; managers and admins see all quotations."
+          },
+          "response": []
+        },
+        {
+          "name": "List discount anomalies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/discount-anomalies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard",
+                "discount-anomalies"
+              ],
+              "query": [
+                {
+                  "key": "asOf",
+                  "value": "",
+                  "description": "Optional ISO 8601 timestamp used as the dashboard clock.",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "100",
+                  "description": "Maximum number of results to return.",
+                  "disabled": true
+                },
+                {
+                  "key": "minDiscountPercent",
+                  "value": "0",
+                  "description": "Only return anomalies at or above this discount percentage.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List discount anomalies\n\nReturns quotation line items whose discount exceeds the applicable customer-tier or product ceiling, ordered by overage."
+          },
+          "response": []
+        },
+        {
+          "name": "List delivery slippage",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/delivery-slippage",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard",
+                "delivery-slippage"
+              ],
+              "query": [
+                {
+                  "key": "asOf",
+                  "value": "",
+                  "description": "Optional ISO 8601 timestamp used as the dashboard clock.",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "100",
+                  "description": "Maximum number of results to return.",
+                  "disabled": true
+                },
+                {
+                  "key": "minOverdueDays",
+                  "value": "0",
+                  "description": "Minimum number of days past the promised delivery date.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List delivery slippage\n\nReturns orders whose promised delivery date has passed and that have not been delivered. Sales reps see orders linked to their quotations; managers and admins see all orders."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "description": "Liveness and readiness",
+      "item": [
+        {
+          "name": "Liveness probe",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Liveness probe",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Readiness probe reporting MongoDB and Redis connectivity",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ready",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ready"
+              ]
+            },
+            "description": "Readiness probe reporting MongoDB and Redis connectivity",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "customerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "magicLinkToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "productId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "variantId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "priceListId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "discountTierId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "warehouseId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "fromWarehouseId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "toWarehouseId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "subscriptionPlanId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "customerId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "salesRepId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tierName",
+      "value": "gold",
+      "type": "string"
+    },
+    {
+      "key": "orderId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "subscriptionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "invoiceId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

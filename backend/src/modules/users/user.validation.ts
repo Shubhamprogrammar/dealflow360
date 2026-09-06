@@ -1,11 +1,14 @@
 import { z } from 'zod';
+import { ROLES } from '../../types/common.types.js';
 const headers = z.record(z.unknown());
 export const createUserSchema = z.object({
   body: z.object({
-    name: z.string().min(2).max(100),
+    firstName: z.string().min(1).max(100),
+    lastName: z.string().min(1).max(100),
     email: z.string().email(),
     password: z.string().min(8),
-    role: z.enum(['admin', 'user', 'manager', 'staff']).optional(),
+    role: z.enum(ROLES),
+    team: z.string().min(1).max(100).optional(),
   }),
   params: z.object({}),
   query: z.object({}),
