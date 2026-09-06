@@ -18,7 +18,7 @@ import { UserModel } from '../src/modules/users/user.model.js';
 
 const PORTAL_CUSTOMER = {
   companyName: 'Northwind Traders',
-  contactEmail: 'buyer@northwind.test',
+  contactEmail: 'buyer@northwind.example',
   contactName: 'Nancy Buyer',
   customerTier: 'silver' as const,
 };

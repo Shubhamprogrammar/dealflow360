@@ -33,7 +33,7 @@ function VerifyInner() {
         const { accessToken, customerId, companyName, redirect } = res.data;
         saveTokens(accessToken);
         saveCustomerSession({ accessToken, customerId, companyName });
-        router.replace(redirect || '/portal/catalog');
+        router.replace(redirect || '/portal');
       })
       .catch(() => setStatus('error'));
   }, [token, router]);
@@ -41,7 +41,11 @@ function VerifyInner() {
   return (
     <div className="flex min-h-[60vh] flex-1 items-center justify-center px-4">
       <div className="w-full max-w-sm text-center">
-        <div className="mb-4 text-xl font-semibold tracking-tight text-slate-900">
+        <span className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 text-base font-bold text-white">
+          D
+        </span>
+        <div className="mb-4 text-xl font-bold tracking-tight text-slate-900">
+
           DealFlow<span className="text-blue-600">360</span>
         </div>
 

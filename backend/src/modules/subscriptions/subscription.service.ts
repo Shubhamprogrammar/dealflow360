@@ -258,7 +258,7 @@ export const subscriptionService = {
     ]);
 
     const views = subscriptions.map((sub) => {
-      const doc = sub as SubscriptionDocument & { 
+      const doc = sub as unknown as SubscriptionDocument & { 
         _id: Types.ObjectId; 
         customer: { _id: Types.ObjectId; companyName: string };
         plan: { _id: Types.ObjectId; name: string; billingCycle: string };
@@ -277,7 +277,7 @@ export const subscriptionService = {
       .lean()
       .exec();
     if (!populated) throw new ApiError(404, 'Subscription not found', 'SUBSCRIPTION_NOT_FOUND');
-    return view(populated as SubscriptionDocument & { 
+    return view(populated as unknown as SubscriptionDocument & { 
       _id: Types.ObjectId; 
       customer: { _id: Types.ObjectId; companyName: string };
       plan: { _id: Types.ObjectId; name: string; billingCycle: string };

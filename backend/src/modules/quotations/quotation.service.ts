@@ -62,9 +62,6 @@ const view = (quotation: any): QuotationView => ({
   customerName: quotation.customer.companyName || 'Unknown Customer',
   customerTier: quotation.customer.customerTier || 'bronze',
   createdBy: quotation.createdBy._id ? quotation.createdBy._id.toString() : quotation.createdBy.toString(),
-  createdByName: quotation.createdBy.firstName
-    ? `${quotation.createdBy.firstName} ${quotation.createdBy.lastName}`.trim()
-    : 'Unknown Rep',
   sourceInquiry: quotation.sourceInquiry?.toString(),
   lineItems: quotation.lineItems.map((item: any) => ({
     id: item._id.toString(),
@@ -275,6 +272,13 @@ export const quotationService = {
   },
 
   createFromInquiry: async (inquiryId: string, requester: Requester): Promise<QuotationView> => {
+    // Rep clicks a "New Inquiry" card in the pipeline: create a draft quotation
+    // for that customer, pre-filled with the requested line items (quantities
+    // carried over, discount left at 0 so the rep still applies pricing/upsell
+    // and submits for approval exactly as for a hand-built quote).
+
+    // Claim the inquiry atomically FIRST -- compare-and-set on status. If
+    // another rep already converted it, this throws 409 and nothing else runs.
     const inquiry = await inquiryService.markConverting(inquiryId);
     const priorStatus = inquiry.status;
 
@@ -282,6 +286,10 @@ export const quotationService = {
       const customer = await CustomerModel.findById(inquiry.customer).exec();
       if (!customer) throw new ApiError(404, 'Customer not found', 'CUSTOMER_NOT_FOUND');
 
+      // Validate every requested product and build all line items BEFORE
+      // persisting anything -- an item that went inactive since the inquiry
+      // was sent aborts the whole conversion with a named 404, and no
+      // half-built quotation is left behind.
       const lineItems: QuotationLineItem[] = [];
       for (const item of inquiry.items) {
         const product = await ProductModel.findById(item.product).exec();

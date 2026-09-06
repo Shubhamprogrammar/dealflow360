@@ -83,11 +83,7 @@ export type QuotationView = {
   customerName: string;
   customerTier: string;
   createdBy: string;
-  createdByName: string;
   sourceInquiry?: string;
-  // Only populated by the approvals queue -- the approval chain lives in a
-  // separate Approval document, not embedded on the quotation itself.
-  approvalSteps?: QuotationApprovalStepView[];
   lineItems: QuotationLineItemView[];
   subtotal: number;
   totalDiscount: number;
@@ -101,6 +97,7 @@ export type QuotationView = {
   status: QuotationStatus;
   approvalRequired: boolean;
   currentApprovalStep: number;
+  approvalSteps?: QuotationApprovalStepView[];
   validUntil?: Date;
   version: number;
   createdAt: Date;
