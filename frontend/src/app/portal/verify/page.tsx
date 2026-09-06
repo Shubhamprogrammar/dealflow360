@@ -45,6 +45,7 @@ function VerifyInner() {
           D
         </span>
         <div className="mb-4 text-xl font-bold tracking-tight text-slate-900">
+
           DealFlow<span className="text-blue-600">360</span>
         </div>
 
