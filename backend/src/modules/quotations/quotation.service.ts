@@ -90,7 +90,10 @@ const assertDraft = (quotation: QuotationDocument): void => {
 // own line-item edits (rep countering a customer's negotiation) and needs
 // the same totals recompute without duplicating the math.
 export const recalculateTotals = async (quotation: QuotationDocument): Promise<void> => {
-  const productIds = [...new Set(quotation.lineItems.map((item) => item.product.toString()))];
+  const productIds = [...new Set(quotation.lineItems.map((item) => {
+    const p = item.product as any;
+    return (p._id ? p._id : p).toString();
+  }))];
   const products = await ProductModel.find({ _id: { $in: productIds } })
     .select('taxRate')
     .exec();
@@ -105,7 +108,9 @@ export const recalculateTotals = async (quotation: QuotationDocument): Promise<v
   for (const item of quotation.lineItems) {
     subtotal += item.quantity * item.unitPrice;
     lineTotalSum += item.lineTotal;
-    tax += item.lineTotal * (taxRateByProduct.get(item.product.toString()) ?? 0);
+    const p = item.product as any;
+    const productId = (p._id ? p._id : p).toString();
+    tax += item.lineTotal * (taxRateByProduct.get(productId) ?? 0);
   }
 
   quotation.subtotal = subtotal;
@@ -146,7 +151,10 @@ export const calculateBlendedRisk = async (
 ): Promise<{ score: number; level: RiskLevel; violations: RiskViolation[] }> => {
   const discountTier = await getDiscountTierForCustomer(quotation.customer);
 
-  const productIds = [...new Set(quotation.lineItems.map((item) => item.product.toString()))];
+  const productIds = [...new Set(quotation.lineItems.map((item) => {
+    const p = item.product as any;
+    return (p._id ? p._id : p).toString();
+  }))];
   const products = await ProductModel.find({ _id: { $in: productIds } })
     .select('category')
     .exec();
@@ -156,7 +164,9 @@ export const calculateBlendedRisk = async (
 
   const violations: RiskViolation[] = [];
   for (const item of quotation.lineItems) {
-    const category = categoryByProduct.get(item.product.toString());
+    const p = item.product as any;
+    const productId = (p._id ? p._id : p).toString();
+    const category = categoryByProduct.get(productId);
     if (!category) continue;
     const categoryLimit = discountTier.categorySpecificLimits.find(
       (limit) => limit.category === category,
@@ -246,8 +256,8 @@ export const quotationService = {
     if (!quotation) throw new ApiError(404, 'Quotation not found', 'QUOTATION_NOT_FOUND');
     if (requester.role === 'sales_rep' && quotation.createdBy.toString() !== requester.id)
       throw new ApiError(403, 'You do not have access to this quotation', 'FORBIDDEN');
-    if (requester.role === 'finance' && quotation.status !== 'approved')
-      throw new ApiError(403, 'Finance can only view approved quotations', 'FORBIDDEN');
+    if (requester.role === 'finance' && !['approved', 'pending_approval', 'under_negotiation'].includes(quotation.status))
+      throw new ApiError(403, 'Finance can only view submitted or approved quotations', 'FORBIDDEN');
     return view(quotation);
   },
 
