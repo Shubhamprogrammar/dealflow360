@@ -6,8 +6,10 @@ import { CustomerModel } from '../customers/customer.model.js';
 import { ProductModel } from '../products/product.model.js';
 import { DiscountTierModel } from '../discount-tiers/discount-tier.model.js';
 import { UpsellRuleModel } from '../upsell-rules/upsell-rule.model.js';
+import { enqueueQuotationEmail } from '../../jobs/jobs.js';
 import { QuotationModel } from './quotation.model.js';
 import type { QuotationDocument, QuotationLineItem, RiskViolation } from './quotation.model.js';
+import { buildQuotationEmail } from './quotation.email.js';
 import type {
   AddLineItemInput,
   CreateQuotationInput,
@@ -208,6 +210,8 @@ export const quotationService = {
           validUntil: input.validUntil ? new Date(input.validUntil) : undefined,
         });
         await quotation.populate('customer');
+        await quotation.populate('lineItems.product');
+        await enqueueQuotationEmail(buildQuotationEmail(quotation, customer));
         return view(quotation);
       } catch (error) {
         if (!isDuplicateKeyError(error)) throw error;

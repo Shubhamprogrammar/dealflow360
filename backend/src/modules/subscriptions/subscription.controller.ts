@@ -9,6 +9,22 @@ export const createSubscription = async (req: Request, res: Response): Promise<v
   sendSuccess(res, 201, 'Subscription created successfully', subscription);
 };
 
+export const listSubscriptions = async (req: Request, res: Response): Promise<void> => {
+  const { status, customer, page, limit } = req.query as Record<string, string | undefined>;
+  const result = await subscriptionService.list({
+    status,
+    customer,
+    page: page ? parseInt(page, 10) : undefined,
+    limit: limit ? parseInt(limit, 10) : undefined,
+  });
+  sendSuccess(res, 200, 'Subscriptions retrieved successfully', result);
+};
+
+export const getSubscription = async (req: Request, res: Response): Promise<void> => {
+  const subscription = await subscriptionService.get(req.params.id as string);
+  sendSuccess(res, 200, 'Subscription retrieved successfully', subscription);
+};
+
 export const prorateSubscription = async (req: Request, res: Response): Promise<void> => {
   const subscription = await subscriptionService.prorate(req.params.id as string, req.body);
   sendSuccess(res, 200, 'Subscription prorated successfully', subscription);

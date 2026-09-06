@@ -2,7 +2,20 @@ import nodemailer, { type Transporter } from 'nodemailer';
 import { env } from './env.js';
 import { logger } from './logger.js';
 
-export type MailMessage = { to: string; subject: string; text: string; html?: string };
+export type MailAttachment = {
+  filename: string;
+  content: string;
+  encoding?: 'base64' | 'utf8';
+  contentType?: string;
+};
+
+export type MailMessage = {
+  to: string;
+  subject: string;
+  text: string;
+  html?: string;
+  attachments?: MailAttachment[];
+};
 
 let transporter: Transporter | null = null;
 

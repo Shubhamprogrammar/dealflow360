@@ -2,6 +2,7 @@ import { Types } from 'mongoose';
 import { ApiError } from '../../utils/api-error.js';
 import { OrderModel } from '../orders/order.model.js';
 import { SubscriptionPlanModel } from '../subscription-plans/subscription-plan.model.js';
+import { CustomerModel } from '../customers/customer.model.js';
 import { InvoiceModel } from '../invoices/invoice.model.js';
 import { SubscriptionModel } from './subscription.model.js';
 import type {
@@ -231,5 +232,55 @@ export const subscriptionService = {
     }
 
     return { invoicesCreated };
+  },
+
+  list: async (filters: {
+    status?: string;
+    customer?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ subscriptions: SubscriptionView[]; total: number }> => {
+    const { status, customer, page = 1, limit = 20 } = filters;
+    const query: Record<string, unknown> = {};
+    if (status) query.status = status;
+    if (customer) query.customer = new Types.ObjectId(customer);
+
+    const [subscriptions, total] = await Promise.all([
+      SubscriptionModel.find(query)
+        .populate('customer', 'companyName')
+        .populate('plan', 'name billingCycle')
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean()
+        .exec(),
+      SubscriptionModel.countDocuments(query).exec(),
+    ]);
+
+    const views = subscriptions.map((sub) => {
+      const doc = sub as SubscriptionDocument & { 
+        _id: Types.ObjectId; 
+        customer: { _id: Types.ObjectId; companyName: string };
+        plan: { _id: Types.ObjectId; name: string; billingCycle: string };
+      };
+      return view(doc);
+    });
+
+    return { subscriptions: views, total };
+  },
+
+  get: async (id: string): Promise<SubscriptionView> => {
+    const subscription = await findSubscription(id);
+    const populated = await SubscriptionModel.findById(id)
+      .populate('customer', 'companyName')
+      .populate('plan', 'name billingCycle')
+      .lean()
+      .exec();
+    if (!populated) throw new ApiError(404, 'Subscription not found', 'SUBSCRIPTION_NOT_FOUND');
+    return view(populated as SubscriptionDocument & { 
+      _id: Types.ObjectId; 
+      customer: { _id: Types.ObjectId; companyName: string };
+      plan: { _id: Types.ObjectId; name: string; billingCycle: string };
+    });
   },
 };

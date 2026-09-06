@@ -31,3 +31,22 @@ export const prorateSubscriptionSchema = z.object({
   query: z.object({}),
   headers,
 });
+
+export const listSubscriptionsSchema = z.object({
+  body: z.object({}),
+  params: z.object({}),
+  query: z.object({
+    status: z.enum(['active', 'paused', 'cancelled']).optional(),
+    customer: objectId.optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+  }),
+  headers,
+});
+
+export const getSubscriptionSchema = z.object({
+  body: z.object({}),
+  params: z.object({ id: objectId }),
+  query: z.object({}),
+  headers,
+});

@@ -305,17 +305,21 @@ export function mapInvoice(i: any): Invoice {
 // ---------------------------------------------------------------------------
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function mapSubscription(s: any): Subscription {
+  const customer = s.customer ?? {};
+  const plan = s.plan ?? {};
+  const billingCycle = plan.billingCycle ?? s.billingCycle ?? 'monthly';
+
   return {
     id: s._id ?? s.id,
-    customerName: s.customerName ?? 'Unknown',
-    plan: s.planName ?? s.plan?.name ?? 'Unknown',
-    cycle: (s.billingCycle ?? 'monthly').charAt(0).toUpperCase() + (s.billingCycle ?? 'monthly').slice(1) as Subscription['cycle'],
+    customerName: customer.companyName ?? s.customerName ?? 'Unknown',
+    plan: plan.name ?? s.planName ?? 'Unknown',
+    cycle: billingCycle.charAt(0).toUpperCase() + billingCycle.slice(1) as Subscription['cycle'],
     nextBillDate: s.nextBillingDate ?? null,
     status: s.status === 'active' ? 'Active' : s.status === 'paused' ? 'Paused' : 'Cancelled',
     oneTimeLines: [],
     recurringLines: [{
-      plan: s.planName ?? 'Unknown',
-      cycle: (s.billingCycle ?? 'monthly').charAt(0).toUpperCase() + (s.billingCycle ?? 'monthly').slice(1) as Subscription['cycle'],
+      plan: plan.name ?? s.planName ?? 'Unknown',
+      cycle: billingCycle.charAt(0).toUpperCase() + billingCycle.slice(1) as Subscription['cycle'],
       amount: s.recurringAmount ?? 0,
       nextBillDate: s.nextBillingDate ?? '',
     }],

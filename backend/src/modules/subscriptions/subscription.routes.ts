@@ -6,9 +6,16 @@ import { validate } from '../../middleware/validate.middleware.js';
 import {
   createSubscription,
   generateInvoices,
+  getSubscription,
+  listSubscriptions,
   prorateSubscription,
 } from './subscription.controller.js';
-import { createSubscriptionSchema, prorateSubscriptionSchema } from './subscription.validation.js';
+import {
+  createSubscriptionSchema,
+  getSubscriptionSchema,
+  listSubscriptionsSchema,
+  prorateSubscriptionSchema,
+} from './subscription.validation.js';
 
 export const subscriptionRoutes = Router();
 
@@ -18,6 +25,8 @@ const canBill = authorize('finance');
 
 subscriptionRoutes.use(authenticate, canBill);
 
+subscriptionRoutes.get('/', validate(listSubscriptionsSchema), asyncHandler(listSubscriptions));
+subscriptionRoutes.get('/:id', validate(getSubscriptionSchema), asyncHandler(getSubscription));
 subscriptionRoutes.post('/', validate(createSubscriptionSchema), asyncHandler(createSubscription));
 subscriptionRoutes.post(
   '/:id/prorate',
