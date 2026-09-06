@@ -82,12 +82,23 @@ export const authService = {
 
   me: async (userId: string): Promise<UserView> => userService.getById(userId),
 
-  // Self-serve: customer asks for a sign-in link. The response is identical
-  // whether or not the email matched a customer, so it can't be used to probe
-  // which emails are registered.
+  // Self-serve: customer asks for a sign-in link. Auto-provisions a Customer
+  // record on first request rather than requiring a rep/admin to have
+  // created one -- so the "no signup" comment on the route means "no
+  // password to set up", not "no self-service account creation". The
+  // response is identical either way (a link is always issued for a
+  // syntactically valid email), so this still can't be used to distinguish
+  // a brand-new signup from an already-registered customer.
   requestMagicLink: async (email: string): Promise<void> => {
-    const customer = await CustomerModel.findOne({ contactEmail: email.toLowerCase() }).exec();
-    if (!customer) return;
+    const normalizedEmail = email.toLowerCase();
+    let customer = await CustomerModel.findOne({ contactEmail: normalizedEmail }).exec();
+    if (!customer) {
+      const [localPart] = normalizedEmail.split('@');
+      customer = await CustomerModel.create({
+        companyName: localPart || normalizedEmail,
+        contactEmail: normalizedEmail,
+      });
+    }
     await issueMagicLink(customer._id.toString(), customer.contactEmail, customer.companyName);
   },
 

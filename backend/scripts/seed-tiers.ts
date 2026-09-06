@@ -1,7 +1,6 @@
 import { connectDatabase, disconnectDatabase } from '../src/config/index.js';
 import { DiscountTierModel } from '../src/modules/discount-tiers/discount-tier.model.js';
-import type { Tier } from '../src/types/common.types.js';
-import type { ProductCategory } from '../src/types/domain.types.js';
+import type { CustomerTier as Tier, ProductCategory } from '../src/types/domain.types.js';
 
 const run = async (): Promise<void> => {
   await connectDatabase();
