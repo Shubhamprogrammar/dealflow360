@@ -9,6 +9,7 @@ import { UpsellRuleModel } from '../upsell-rules/upsell-rule.model.js';
 import { ApprovalModel } from '../approvals/approval.model.js';
 import { enqueueQuotationEmail } from '../../jobs/jobs.js';
 import { inquiryService } from '../inquiries/inquiry.service.js';
+import { enqueueQuotationEmail } from '../../jobs/jobs.js';
 import { QuotationModel } from './quotation.model.js';
 import type { QuotationDocument, QuotationLineItem, RiskViolation } from './quotation.model.js';
 import { buildQuotationEmail } from './quotation.email.js';
