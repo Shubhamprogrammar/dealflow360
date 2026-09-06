@@ -17,6 +17,7 @@
     "format:check": "prettier --check .",
     "seed": "tsx scripts/seed.ts",
     "seed:catalog": "tsx scripts/seed-catalog.ts",
+    "seed:300": "tsx scripts/seed-300.ts",
     "postman": "tsx scripts/postman.ts",
     "docs:check": "tsx scripts/docs-check.ts"
   },

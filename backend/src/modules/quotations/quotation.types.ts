@@ -97,6 +97,7 @@ export type QuotationView = {
   status: QuotationStatus;
   approvalRequired: boolean;
   currentApprovalStep: number;
+  approvalSteps?: QuotationApprovalStepView[];
   validUntil?: Date;
   version: number;
   createdAt: Date;
