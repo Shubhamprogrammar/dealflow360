@@ -8,14 +8,14 @@ export function Table({ children }: { children: React.ReactNode }) {
 
 export function Thead({ children }: { children: React.ReactNode }) {
   return (
-    <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+    <thead className="border-b border-slate-200 bg-slate-50/80 text-xs uppercase tracking-wider text-slate-600">
       <tr>{children}</tr>
     </thead>
   );
 }
 
 export function Th({ children }: { children: React.ReactNode }) {
-  return <th className="px-4 py-3 font-medium">{children}</th>;
+  return <th className="px-4 py-3 font-semibold">{children}</th>;
 }
 
 export function Tbody({ children }: { children: React.ReactNode }) {
@@ -42,5 +42,5 @@ export function Tr({
 }
 
 export function Td({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <td className={`px-4 py-3 text-slate-700 ${className}`}>{children}</td>;
+  return <td className={`px-4 py-3 text-slate-700 tabular-nums ${className}`}>{children}</td>;
 }

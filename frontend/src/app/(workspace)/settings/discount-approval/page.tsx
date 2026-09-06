@@ -67,10 +67,15 @@ export default function DiscountApprovalSetupPage() {
     <div className="min-h-full bg-slate-50">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
-          <span className="text-lg font-semibold tracking-tight text-slate-900">
-            DealFlow<span className="text-blue-600">360</span>
+          <span className="flex items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">
+              D
+            </span>
+            <span className="text-lg font-bold tracking-tight text-slate-900">
+              DealFlow<span className="text-blue-600">360</span>
+            </span>
           </span>
-          <button onClick={() => router.back()} className="text-sm font-medium text-slate-500 hover:text-slate-900">
+          <button onClick={() => router.back()} className="rounded-lg px-2 py-1 text-sm font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900">
             ← Back
           </button>
         </div>
