@@ -307,7 +307,40 @@ export const quotationService = {
         createdBy: requester.id,
         sourceInquiry: inquiry._id,
       });
+      for (const lineItem of lineItems) quotation.lineItems.push(lineItem);
 
+      await recalculateTotals(quotation);
+      await quotation.save();
+
+      await inquiryService.finalizeConversion(
+        inquiry._id.toString(),
+        quotation._id.toString(),
+        requester.id,
+      );
+
+      await quotation.populate('customer');
+      await quotation.populate('lineItems.product');
+      return view(quotation);
+    } catch (error) {
+      // Conversion failed after we claimed the inquiry -- put it back to its
+      // prior status so the rep can fix the problem and retry.
+      await inquiryService.releaseConversion(inquiry._id.toString(), priorStatus);
+      throw error;
+    }
+  },
+
+  // roleaccess.md scoping: Sales Rep sees only their own deals; Finance/Ops
+  // is restricted to approved quotations; Manager (team-level) and Admin see
+  // everything matching the requested filters.
+  list: async (
+    query: ListQuotationsQuery,
+    requester: Requester,
+  ): Promise<{ items: QuotationView[]; pagination: Pagination }> => {
+    const filter: Record<string, unknown> = {};
+    if (query.status) filter.status = query.status;
+    if (query.customer) filter.customer = query.customer;
+    if (requester.role === 'sales_rep') filter.createdBy = requester.id;
+    if (requester.role === 'finance') filter.status = 'approved';
 
     const [items, total] = await Promise.all([
       QuotationModel.find(filter)
